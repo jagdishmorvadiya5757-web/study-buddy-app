@@ -14,16 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      branches: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      resources: {
+        Row: {
+          branch_id: string
+          created_at: string
+          description: string | null
+          download_count: number
+          external_url: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          semester: number
+          subject_name: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          semester: number
+          subject_name: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          description?: string | null
+          download_count?: number
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean
+          resource_type?: Database["public"]["Enums"]["resource_type"]
+          semester?: number
+          subject_name?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "student"
+      resource_type:
+        | "playlist"
+        | "gtu_paper"
+        | "paper_solution"
+        | "imp"
+        | "book"
+        | "lab_manual"
+        | "handwritten_notes"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +306,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "student"],
+      resource_type: [
+        "playlist",
+        "gtu_paper",
+        "paper_solution",
+        "imp",
+        "book",
+        "lab_manual",
+        "handwritten_notes",
+      ],
+    },
   },
 } as const

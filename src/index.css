@@ -6,52 +6,56 @@
 
 @layer base {
   :root {
-    --background: 40 30% 98%;
-    --foreground: 220 25% 15%;
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 25% 15%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 15%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 220 60% 35%;
+    --primary: 220 90% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 165 40% 45%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 45 100% 51%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 220 15% 92%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 165 50% 92%;
-    --accent-foreground: 165 60% 25%;
+    --accent: 220 90% 95%;
+    --accent-foreground: 220 90% 35%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 220 60% 35%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 220 90% 40%;
 
     --radius: 0.75rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220 60% 35%), hsl(220 70% 50%));
-    --gradient-accent: linear-gradient(135deg, hsl(165 40% 45%), hsl(165 50% 55%));
-    --gradient-warm: linear-gradient(135deg, hsl(40 30% 98%), hsl(40 20% 94%));
+    --gtu-blue: 220 90% 40%;
+    --gtu-gold: 45 100% 51%;
+    --gtu-dark: 222 47% 11%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(220 90% 40%), hsl(220 90% 55%));
+    --gradient-gold: linear-gradient(135deg, hsl(45 100% 51%), hsl(35 100% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 90% 35%) 0%, hsl(220 70% 50%) 100%);
     
-    --shadow-soft: 0 4px 20px -4px hsl(220 25% 15% / 0.08);
-    --shadow-card: 0 8px 30px -8px hsl(220 25% 15% / 0.12);
-    --shadow-glow: 0 0 40px hsl(165 40% 45% / 0.15);
+    --shadow-soft: 0 4px 20px -4px hsl(220 90% 40% / 0.1);
+    --shadow-card: 0 8px 30px -8px hsl(222 47% 11% / 0.12);
+    --shadow-elevated: 0 20px 40px -12px hsl(222 47% 11% / 0.15);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-primary: 220 90% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 90% 95%;
+    --sidebar-accent-foreground: 220 90% 35%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 220 90% 40%;
   }
 
   .dark {
