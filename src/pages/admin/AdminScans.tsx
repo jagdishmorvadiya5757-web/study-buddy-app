@@ -42,7 +42,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Search
+  Search,
+  FileText
 } from 'lucide-react';
 
 const AdminScans = () => {
@@ -364,13 +365,20 @@ const AdminScans = () => {
                 </div>
               </div>
               
-              <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden">
+              <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center gap-4">
                 {previewScan.file_url ? (
-                  <iframe
-                    src={previewScan.file_url}
-                    className="w-full h-full"
-                    title="Scan Preview"
-                  />
+                  <>
+                    <FileText className="w-16 h-16 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground text-center px-4">
+                      PDF preview is blocked by browser security. Click below to view:
+                    </p>
+                    <Button asChild>
+                      <a href={previewScan.file_url} target="_blank" rel="noopener noreferrer">
+                        <Eye className="w-4 h-4 mr-2" />
+                        Open PDF in New Tab
+                      </a>
+                    </Button>
+                  </>
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     Preview not available
