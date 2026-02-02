@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,9 +44,9 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  FileText,
   Loader2
 } from 'lucide-react';
+import PdfViewer from '@/components/admin/PdfViewer';
 
 const AdminScans = () => {
   const { user } = useAuth();
@@ -61,7 +61,72 @@ const AdminScans = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<{ code: number; message: string } | null>(null);
+
+  // Load PDF when preview scan changes
+  useEffect(() => {
+    if (!previewScan?.file_url) {
+      setPdfBlobUrl(null);
+      return;
+    }
+
+    const loadPdf = async () => {
+      setIsLoadingPdf(true);
+      setPdfError(null);
+      setPdfBlobUrl(null);
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        if (!token) {
+          setPdfError({ code: 401, message: 'Not logged in. Please sign in to view PDFs.' });
+          return;
+        }
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const proxyUrl = `${supabaseUrl}/functions/v1/scan-file-proxy?scanId=${encodeURIComponent(previewScan.id)}`;
+
+        const response = await fetch(proxyUrl, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          setPdfError(getErrorMessage(response.status, errorText));
+          return;
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setPdfBlobUrl(blobUrl);
+      } catch (error) {
+        console.error('Failed to load PDF:', error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          setPdfError({
+            code: 0,
+            message: 'Network error. The request may be blocked by your browser/extension. Try disabling ad blockers.',
+          });
+        } else {
+          setPdfError({ code: 0, message: error instanceof Error ? error.message : 'Failed to load PDF.' });
+        }
+      } finally {
+        setIsLoadingPdf(false);
+      }
+    };
+
+    loadPdf();
+
+    // Cleanup blob URL on unmount or when scan changes
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [previewScan?.id, previewScan?.file_url]);
 
   const getErrorMessage = (status: number, responseText: string): { code: number; message: string } => {
     switch (status) {
@@ -80,143 +145,14 @@ const AdminScans = () => {
     }
   };
 
-  const handleOpenPdf = async () => {
-    if (!previewScan) return;
-    
-    setIsLoadingPdf(true);
+  const handleRetryPdf = () => {
     setPdfError(null);
-    
-    // Open the tab immediately (avoids popup blockers since this is user-initiated)
-    const newTab = window.open('about:blank', '_blank');
-    if (!newTab) {
-      setPdfError({ code: 0, message: 'Popup blocked by browser. Please allow popups for this site and try again.' });
-      setIsLoadingPdf(false);
-      return;
-    }
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      
-      if (!token) {
-        setPdfError({ code: 401, message: 'Not logged in. Please sign in to view PDFs.' });
-        newTab.close();
-        return;
-      }
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const proxyUrl = `${supabaseUrl}/functions/v1/scan-file-proxy?scanId=${encodeURIComponent(previewScan.id)}`;
-      
-      // Fetch the PDF through the proxy with auth
-      const response = await fetch(proxyUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        const error = getErrorMessage(response.status, errorText);
-        setPdfError(error);
-        newTab.close();
-        return;
-      }
-
-      // Get the blob and create an object URL
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      const safeTitle = (previewScan.title || 'Scan PDF')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-      // IMPORTANT:
-      // Many Chrome extensions break embedded PDF viewers (iframe/embed) and show
-      // “It may have been moved, edited, or deleted”. The most reliable approach is
-      // to navigate the new tab directly to the blob URL (top-level navigation).
-      //
-      // If navigation gets blocked (some privacy tools), we show a simple fallback page
-      // with a clickable link.
-      const renderFallbackPage = () => {
-        try {
-          newTab.document.open();
-          newTab.document.write(`<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${safeTitle}</title>
-    <style>
-      html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-      .wrap { max-width: 720px; margin: 40px auto; padding: 0 16px; }
-      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
-      a { word-break: break-all; }
-      .muted { color: #6b7280; font-size: 14px; }
-      .btn { display: inline-block; margin-top: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid #e5e7eb; text-decoration: none; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <h1 style="margin:0 0 12px 0; font-size:18px;">${safeTitle}</h1>
-      <div class="card">
-        <div class="muted">Your browser/extension blocked automatic PDF opening. Click below to open the PDF directly.</div>
-        <a class="btn" href="${blobUrl}" target="_self" rel="noreferrer">Open PDF</a>
-        <div class="muted" style="margin-top:10px;">If it still fails, try Chrome Incognito or temporarily disable ad-block/privacy extensions for this site.</div>
-      </div>
-    </div>
-  </body>
-</html>`);
-          newTab.document.close();
-          newTab.focus();
-        } catch {
-          // ignore
-        }
-      };
-
-      try {
-        newTab.location.href = blobUrl;
-        newTab.focus();
-
-        // If navigation was blocked, the tab often stays on about:blank.
-        // We check shortly after and render a fallback page with a manual link.
-        window.setTimeout(() => {
-          try {
-            if (newTab.closed) return;
-            if (newTab.location.href === 'about:blank') {
-              renderFallbackPage();
-            }
-          } catch {
-            // If we can't read location, do nothing.
-          }
-        }, 300);
-      } catch {
-        renderFallbackPage();
-      }
-      
-      // Note: We intentionally do NOT revoke the blob URL.
-      // Chrome's PDF viewer needs the URL to remain valid for the entire viewing session.
-      // The blob will be garbage-collected automatically when the tab is closed.
-    } catch (error) {
-      console.error('Failed to open PDF:', error);
-      
-      // Check for network/CORS errors
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        setPdfError({
-          code: 0,
-          message:
-            'Network error. The request may be blocked by your browser/extension (ERR_BLOCKED_BY_CLIENT). Try disabling ad blockers for this site, then try again.',
-        });
-      } else {
-        setPdfError({ code: 0, message: error instanceof Error ? error.message : 'Failed to open PDF. Please try again.' });
-      }
-      
-      try {
-        newTab.close();
-      } catch {
-        // ignore
-      }
-    } finally {
-      setIsLoadingPdf(false);
+    setPdfBlobUrl(null);
+    // Trigger re-fetch by toggling previewScan
+    if (previewScan) {
+      const scan = previewScan;
+      setPreviewScan(null);
+      setTimeout(() => setPreviewScan(scan), 0);
     }
   };
 
@@ -500,14 +436,14 @@ const AdminScans = () => {
       </Card>
 
       {/* Preview Dialog */}
-      <Dialog open={!!previewScan} onOpenChange={(open) => { if (!open) { setPreviewScan(null); setPdfError(null); } }}>
-        <DialogContent className="max-w-3xl max-h-[90vh]">
+      <Dialog open={!!previewScan} onOpenChange={(open) => { if (!open) { setPreviewScan(null); setPdfError(null); setPdfBlobUrl(null); } }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{previewScan?.title}</DialogTitle>
           </DialogHeader>
           {previewScan && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex flex-col flex-1 min-h-0 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Submitted by:</span>{' '}
                   <span className="font-medium">{previewScan.user_name || previewScan.user_email}</span>
@@ -526,9 +462,14 @@ const AdminScans = () => {
                 </div>
               </div>
               
-              <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center gap-4 p-4">
-                {pdfError ? (
-                  <>
+              <div className="flex-1 min-h-[400px] bg-muted rounded-lg overflow-hidden">
+                {isLoadingPdf ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Loading PDF...</p>
+                  </div>
+                ) : pdfError ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
                     <XCircle className="w-16 h-16 text-destructive" />
                     <div className="text-center space-y-2">
                       <p className="text-sm font-medium text-destructive">
@@ -538,42 +479,22 @@ const AdminScans = () => {
                         {pdfError.message}
                       </p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setPdfError(null);
-                        handleOpenPdf();
-                      }}
-                      disabled={isLoadingPdf}
-                    >
-                      {isLoadingPdf ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Eye className="w-4 h-4 mr-2" />
-                      )}
+                    <Button variant="outline" onClick={handleRetryPdf}>
+                      <Eye className="w-4 h-4 mr-2" />
                       Try Again
                     </Button>
-                  </>
-                ) : previewScan.file_url ? (
-                  <>
-                    <FileText className="w-16 h-16 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground text-center px-4">
-                      Click below to securely view the PDF:
-                    </p>
-                    <Button onClick={handleOpenPdf} disabled={isLoadingPdf}>
-                      {isLoadingPdf ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Eye className="w-4 h-4 mr-2" />
-                      )}
-                      {isLoadingPdf ? 'Loading...' : 'Open PDF in New Tab'}
-                    </Button>
-                  </>
-                ) : (
+                  </div>
+                ) : pdfBlobUrl ? (
+                  <PdfViewer 
+                    pdfUrl={pdfBlobUrl} 
+                    title={previewScan.title}
+                    onError={() => setPdfError({ code: 0, message: 'Failed to render PDF.' })}
+                  />
+                ) : !previewScan.file_url ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     Preview not available
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           )}
