@@ -8,8 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-const GTU_LOGO = 'https://www.gtu.ac.in/img/gtu_logo.png';
+import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
 
 const Header = () => {
   const { user, isAdmin, isSubAdmin, canAccessAdmin, signOut } = useAuth();
@@ -25,9 +24,9 @@ const Header = () => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-3">
           <img
-            src={GTU_LOGO}
-            alt="GTU Logo"
-            className="h-12 w-12 object-contain"
+            src={gtuVerseLogo}
+            alt="GTU-VERSE Logo"
+            className="h-12 w-12 object-contain rounded-full"
           />
           <div>
             <h1 className="font-display text-lg font-bold text-foreground leading-tight">
