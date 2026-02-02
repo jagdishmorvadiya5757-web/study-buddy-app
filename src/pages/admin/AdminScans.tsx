@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   usePendingScans, 
   useAllSharedScans,
+  useAllUserScans,
   useApproveScan, 
   useRejectScan, 
   useDeleteScan,
@@ -47,7 +48,7 @@ import {
 const AdminScans = () => {
   const { user } = useAuth();
   const { data: pendingScans, isLoading: pendingLoading } = usePendingScans();
-  const { data: allScans, isLoading: allLoading } = useAllSharedScans();
+  const { data: allScans, isLoading: allLoading } = useAllUserScans();
   const approveScan = useApproveScan();
   const rejectScan = useRejectScan();
   const deleteScan = useDeleteScan();
@@ -109,9 +110,11 @@ const AdminScans = () => {
       case 'pending':
         return <Badge variant="outline" className="gap-1"><Clock className="w-3 h-3" /> Pending</Badge>;
       case 'approved':
-        return <Badge variant="default" className="gap-1 bg-green-500"><CheckCircle className="w-3 h-3" /> Approved</Badge>;
+        return <Badge variant="default" className="gap-1 bg-green-600"><CheckCircle className="w-3 h-3" /> Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3" /> Rejected</Badge>;
+      case 'private':
+        return <Badge variant="secondary" className="gap-1">Private</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }

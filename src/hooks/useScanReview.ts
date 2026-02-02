@@ -75,6 +75,33 @@ export const useAllSharedScans = () => {
   });
 };
 
+// Get ALL user scans for admin view (including private)
+export const useAllUserScans = () => {
+  return useQuery({
+    queryKey: ['all-user-scans'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_scans')
+        .select(`
+          *,
+          profiles:user_id (
+            email,
+            full_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      return data.map((scan: any) => ({
+        ...scan,
+        user_email: scan.profiles?.email,
+        user_name: scan.profiles?.full_name,
+      })) as UserScan[];
+    },
+  });
+};
+
 export const useApproveScan = () => {
   const queryClient = useQueryClient();
 
