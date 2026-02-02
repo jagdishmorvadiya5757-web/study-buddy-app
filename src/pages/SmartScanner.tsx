@@ -367,35 +367,36 @@ const SmartScanner = () => {
       </div>
 
       {/* Camera/Preview Area */}
-      <div className="flex-1 bg-muted flex flex-col">
+      <div className="flex-1 bg-muted flex flex-col overflow-hidden">
         {pages.length > 0 ? (
-          <div className="flex-1 p-4 overflow-auto">
-            <div className="grid grid-cols-2 gap-3">
+          <div className="flex-1 p-3 overflow-auto">
+            {/* Smaller thumbnails in 3 columns */}
+            <div className="grid grid-cols-3 gap-2">
               {pages.map((page, index) => (
-                <div key={page.id} className="relative aspect-[3/4] rounded-lg overflow-hidden bg-card shadow-md">
+                <div key={page.id} className="relative aspect-[3/4] rounded-md overflow-hidden bg-card shadow-sm">
                   <img 
                     src={page.imageData} 
                     alt={`Page ${index + 1}`} 
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                  <div className="absolute top-1 left-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded">
                     {index + 1}
                   </div>
                   <button
                     onClick={() => removePage(page.id)}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full"
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-2.5 h-2.5" />
                   </button>
                 </div>
               ))}
-              {/* Add more button */}
+              {/* Compact Add Page button */}
               <button
                 onClick={captureImage}
-                className="aspect-[3/4] rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                className="aspect-[3/4] rounded-md border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
-                <Plus className="w-8 h-8" />
-                <span className="text-sm">Add Page</span>
+                <Plus className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Add</span>
               </button>
             </div>
           </div>
@@ -416,26 +417,25 @@ const SmartScanner = () => {
         )}
       </div>
 
-      {/* Bottom Actions */}
+      {/* Bottom Actions - Always visible when pages exist */}
       {pages.length > 0 && (
-        <div className="p-4 border-t bg-card">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-muted-foreground">
-              {pages.length} page{pages.length !== 1 ? 's' : ''} scanned
+        <div className="p-3 border-t bg-card safe-area-bottom">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground flex-shrink-0">
+              {pages.length} page{pages.length !== 1 ? 's' : ''}
             </span>
-            <Button variant="outline" size="sm" onClick={captureImage}>
+            <Button variant="outline" size="sm" onClick={captureImage} className="flex-shrink-0">
               <Plus className="w-4 h-4 mr-1" />
-              Add More
+              Add
+            </Button>
+            <Button 
+              className="flex-1 bg-green-600 hover:bg-green-700" 
+              onClick={() => setShowSaveDialog(true)}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Save PDF
             </Button>
           </div>
-          <Button 
-            className="w-full" 
-            size="lg"
-            onClick={() => setShowSaveDialog(true)}
-          >
-            <FileText className="w-5 h-5 mr-2" />
-            Save as PDF
-          </Button>
         </div>
       )}
 
