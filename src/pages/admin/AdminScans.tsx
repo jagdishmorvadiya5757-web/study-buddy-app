@@ -125,10 +125,35 @@ const AdminScans = () => {
       // Get the blob and create an object URL
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
-      
-      // Navigate the already-opened tab to the blob URL
-      newTab.location.href = blobUrl;
-      newTab.focus();
+
+      // Some Chrome extensions (adblock/privacy tools) can block top-level navigations
+      // with ERR_BLOCKED_BY_CLIENT. To avoid that, keep the tab on about:blank and
+      // embed the PDF via an iframe.
+      try {
+        const safeTitle = (previewScan.title || 'Scan PDF').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        newTab.document.open();
+        newTab.document.write(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${safeTitle}</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      .frame { width: 100%; height: 100%; border: 0; }
+    </style>
+  </head>
+  <body>
+    <iframe class="frame" src="${blobUrl}" title="${safeTitle}"></iframe>
+  </body>
+</html>`);
+        newTab.document.close();
+        newTab.focus();
+      } catch {
+        // Fallback: if document access is blocked for any reason, try normal navigation.
+        newTab.location.href = blobUrl;
+        newTab.focus();
+      }
       
       // Cleanup after a delay (browser needs time to load it)
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
@@ -138,7 +163,11 @@ const AdminScans = () => {
       
       // Check for network/CORS errors
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        setPdfError({ code: 0, message: 'Network error. The request may be blocked by your browser or a firewall.' });
+        setPdfError({
+          code: 0,
+          message:
+            'Network error. The request may be blocked by your browser/extension (ERR_BLOCKED_BY_CLIENT). Try disabling ad blockers for this site, then try again.',
+        });
       } else {
         setPdfError({ code: 0, message: error instanceof Error ? error.message : 'Failed to open PDF. Please try again.' });
       }
