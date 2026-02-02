@@ -1,6 +1,7 @@
 import Header from '@/components/gtu/Header';
 import HeroSection from '@/components/gtu/HeroSection';
 import BranchCard from '@/components/gtu/BranchCard';
+import TrendingResources from '@/components/gtu/TrendingResources';
 import Footer from '@/components/gtu/Footer';
 import { useBranches } from '@/hooks/useBranches';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,6 +34,9 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <HeroSection />
+      
+      {/* Trending Resources */}
+      <TrendingResources />
 
       {/* Browse by Branch */}
       <section className="py-16 bg-muted/50">

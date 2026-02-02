@@ -1,4 +1,5 @@
 import { Resource, ResourceType } from '@/hooks/useResources';
+import { useTrackDownload } from '@/hooks/useDownloadTracking';
 import { Button } from '@/components/ui/button';
 import { 
   Download, 
@@ -29,10 +30,13 @@ interface ResourceCardProps {
 const ResourceCard = ({ resource }: ResourceCardProps) => {
   const config = resourceTypeConfig[resource.resource_type];
   const Icon = config.icon;
+  const trackDownload = useTrackDownload();
 
   const handleAction = () => {
     const url = resource.external_url || resource.file_url;
     if (url) {
+      // Track the download/view
+      trackDownload.mutate(resource.id);
       window.open(url, '_blank');
     }
   };
