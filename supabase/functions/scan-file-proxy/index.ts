@@ -6,19 +6,32 @@ type ScanRow = {
   title: string;
 };
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  // Allow the browser to read these headers.
+  "Access-Control-Expose-Headers": "Content-Type, Content-Disposition",
+};
+
 serve(async (req) => {
   try {
+    // Handle CORS preflight requests
+    if (req.method === "OPTIONS") {
+      return new Response("ok", { headers: corsHeaders });
+    }
+
     const url = new URL(req.url);
     const scanId = url.searchParams.get("scanId");
 
     if (!scanId) {
-      return new Response("Missing scanId", { status: 400 });
+      return new Response("Missing scanId", { status: 400, headers: corsHeaders });
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const jwt = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
     if (!jwt) {
-      return new Response("Unauthorized", { status: 401 });
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
     const backendUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -26,8 +39,10 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     if (!backendUrl || !anonKey || !serviceRoleKey) {
-      return new Response("Server misconfigured", { status: 500 });
+      return new Response("Server misconfigured", { status: 500, headers: corsHeaders });
     }
+
+    console.log("scan-file-proxy request", { scanId });
 
     // Verify the caller and their role
     const userClient = createClient(backendUrl, anonKey, {
@@ -40,7 +55,8 @@ serve(async (req) => {
 
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
-      return new Response("Unauthorized", { status: 401 });
+      console.log("scan-file-proxy unauthorized", { scanId, userErr });
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
     const adminClient = createClient(backendUrl, serviceRoleKey);
@@ -50,10 +66,12 @@ serve(async (req) => {
     );
 
     if (roleErr) {
-      return new Response("Failed to verify permissions", { status: 500 });
+      console.log("scan-file-proxy role check error", { scanId, roleErr });
+      return new Response("Failed to verify permissions", { status: 500, headers: corsHeaders });
     }
     if (!isAdmin) {
-      return new Response("Forbidden", { status: 403 });
+      console.log("scan-file-proxy forbidden", { scanId, userId: userData.user.id });
+      return new Response("Forbidden", { status: 403, headers: corsHeaders });
     }
 
     // Load scan to get its file URL
@@ -64,10 +82,11 @@ serve(async (req) => {
       .maybeSingle<ScanRow>();
 
     if (scanErr) {
-      return new Response("Failed to load scan", { status: 500 });
+      console.log("scan-file-proxy scan load error", { scanId, scanErr });
+      return new Response("Failed to load scan", { status: 500, headers: corsHeaders });
     }
     if (!scan?.file_url) {
-      return new Response("Not found", { status: 404 });
+      return new Response("Not found", { status: 404, headers: corsHeaders });
     }
 
     // Expected format: .../storage/v1/object/public/user-scans/<path>
@@ -75,7 +94,7 @@ serve(async (req) => {
       /\/storage\/v1\/object\/public\/user-scans\/(.+)$/,
     );
     if (!match?.[1]) {
-      return new Response("Invalid file URL", { status: 400 });
+      return new Response("Invalid file URL", { status: 400, headers: corsHeaders });
     }
 
     const objectPath = match[1];
@@ -86,7 +105,8 @@ serve(async (req) => {
       .download(objectPath);
 
     if (dlErr || !blob) {
-      return new Response("Failed to download file", { status: 500 });
+      console.log("scan-file-proxy download error", { scanId, dlErr });
+      return new Response("Failed to download file", { status: 500, headers: corsHeaders });
     }
 
     const body = await blob.arrayBuffer();
@@ -95,6 +115,7 @@ serve(async (req) => {
     return new Response(body, {
       status: 200,
       headers: {
+        ...corsHeaders,
         "Content-Type": contentType,
         "Content-Disposition": `inline; filename="${filename}"`,
         "X-Content-Type-Options": "nosniff",
@@ -103,6 +124,7 @@ serve(async (req) => {
       },
     });
   } catch (_e) {
-    return new Response("Unexpected error", { status: 500 });
+    console.log("scan-file-proxy unexpected error", _e);
+    return new Response("Unexpected error", { status: 500, headers: corsHeaders });
   }
 });
