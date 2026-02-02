@@ -25,24 +25,29 @@ export const usePendingScans = () => {
   return useQuery({
     queryKey: ['pending-scans'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get pending scans
+      const { data: scans, error } = await supabase
         .from('user_scans')
-        .select(`
-          *,
-          profiles:user_id (
-            email,
-            full_name
-          )
-        `)
+        .select('*')
         .eq('share_status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      return data.map((scan: any) => ({
+      if (!scans || scans.length === 0) return [];
+
+      // Get user profiles for these scans
+      const userIds = [...new Set(scans.map(s => s.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, email, full_name')
+        .in('user_id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      return scans.map((scan) => ({
         ...scan,
-        user_email: scan.profiles?.email,
-        user_name: scan.profiles?.full_name,
+        user_email: profileMap.get(scan.user_id)?.email,
+        user_name: profileMap.get(scan.user_id)?.full_name,
       })) as UserScan[];
     },
   });
@@ -52,24 +57,27 @@ export const useAllSharedScans = () => {
   return useQuery({
     queryKey: ['all-shared-scans'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: scans, error } = await supabase
         .from('user_scans')
-        .select(`
-          *,
-          profiles:user_id (
-            email,
-            full_name
-          )
-        `)
+        .select('*')
         .neq('share_status', 'private')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      return data.map((scan: any) => ({
+      if (!scans || scans.length === 0) return [];
+
+      const userIds = [...new Set(scans.map(s => s.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, email, full_name')
+        .in('user_id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      return scans.map((scan) => ({
         ...scan,
-        user_email: scan.profiles?.email,
-        user_name: scan.profiles?.full_name,
+        user_email: profileMap.get(scan.user_id)?.email,
+        user_name: profileMap.get(scan.user_id)?.full_name,
       })) as UserScan[];
     },
   });
@@ -80,23 +88,26 @@ export const useAllUserScans = () => {
   return useQuery({
     queryKey: ['all-user-scans'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: scans, error } = await supabase
         .from('user_scans')
-        .select(`
-          *,
-          profiles:user_id (
-            email,
-            full_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      return data.map((scan: any) => ({
+      if (!scans || scans.length === 0) return [];
+
+      const userIds = [...new Set(scans.map(s => s.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, email, full_name')
+        .in('user_id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      return scans.map((scan) => ({
         ...scan,
-        user_email: scan.profiles?.email,
-        user_name: scan.profiles?.full_name,
+        user_email: profileMap.get(scan.user_id)?.email,
+        user_name: profileMap.get(scan.user_id)?.full_name,
       })) as UserScan[];
     },
   });
