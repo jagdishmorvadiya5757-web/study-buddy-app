@@ -24,6 +24,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<AppRole | null>(null);
 
   const fetchUserRole = async (userId: string) => {
+    // Check for admin role first (prioritize admin over student)
+    const { data: adminData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (adminData) {
+      setUserRole('admin');
+      return;
+    }
+
+    // Otherwise check for any role
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')
