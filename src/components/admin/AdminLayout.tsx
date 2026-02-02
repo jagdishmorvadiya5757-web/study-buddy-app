@@ -12,7 +12,7 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout = ({ children, title, subtitle, actions }: AdminLayoutProps) => {
-  const { user, userRole, isLoading } = useAuth();
+  const { user, canAccessAdmin, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -22,7 +22,7 @@ const AdminLayout = ({ children, title, subtitle, actions }: AdminLayoutProps) =
     );
   }
 
-  if (!user || userRole !== 'admin') {
+  if (!user || !canAccessAdmin) {
     return <Navigate to="/" replace />;
   }
 

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-type AppRole = 'admin' | 'student';
+type AppRole = 'admin' | 'student' | 'sub_admin';
 
 interface AuthContextType {
   user: User | null;
@@ -10,6 +10,8 @@ interface AuthContextType {
   isLoading: boolean;
   userRole: AppRole | null;
   isAdmin: boolean;
+  isSubAdmin: boolean;
+  canAccessAdmin: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -24,7 +26,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<AppRole | null>(null);
 
   const fetchUserRole = async (userId: string) => {
-    // Check for admin role first (prioritize admin over student)
+    // Check for admin role first (prioritize admin over sub_admin over student)
     const { data: adminData } = await supabase
       .from('user_roles')
       .select('role')
@@ -34,6 +36,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (adminData) {
       setUserRole('admin');
+      return;
+    }
+
+    // Check for sub_admin role
+    const { data: subAdminData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'sub_admin')
+      .maybeSingle();
+
+    if (subAdminData) {
+      setUserRole('sub_admin');
       return;
     }
 
@@ -123,6 +138,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         userRole,
         isAdmin: userRole === 'admin',
+        isSubAdmin: userRole === 'sub_admin',
+        canAccessAdmin: userRole === 'admin' || userRole === 'sub_admin',
         signUp,
         signIn,
         signOut,

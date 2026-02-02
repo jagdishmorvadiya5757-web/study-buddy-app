@@ -12,7 +12,7 @@ import {
 const GTU_LOGO = 'https://www.gtu.ac.in/img/gtu_logo.png';
 
 const Header = () => {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isSubAdmin, canAccessAdmin, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -63,15 +63,15 @@ const Header = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
-                  {isAdmin ? <Shield className="w-4 h-4 text-primary" /> : <User className="w-4 h-4" />}
+                  {(isAdmin || isSubAdmin) ? <Shield className="w-4 h-4 text-primary" /> : <User className="w-4 h-4" />}
                   <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {isAdmin && (
-                  <DropdownMenuItem onClick={() => navigate('/admin')}>
+                {canAccessAdmin && (
+                  <DropdownMenuItem onClick={() => navigate(isAdmin ? '/admin' : '/admin/resources')}>
                     <Shield className="w-4 h-4 mr-2" />
-                    Admin Panel
+                    {isAdmin ? 'Admin Panel' : 'Sub-Admin Panel'}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleSignOut}>
