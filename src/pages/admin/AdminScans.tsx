@@ -59,6 +59,10 @@ const AdminScans = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const previewProxyUrl = previewScan
+    ? `/functions/v1/scan-file-proxy?scanId=${encodeURIComponent(previewScan.id)}`
+    : '';
+
   const handleApprove = async (scan: UserScan) => {
     if (!user) return;
     
@@ -370,10 +374,10 @@ const AdminScans = () => {
                   <>
                     <FileText className="w-16 h-16 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground text-center px-4">
-                      PDF preview is blocked by browser security. Click below to view:
+                      If your browser blocks the storage domain, open the PDF via the app proxy:
                     </p>
                     <Button asChild>
-                      <a href={previewScan.file_url} target="_blank" rel="noopener noreferrer">
+                      <a href={previewProxyUrl} target="_blank" rel="noopener noreferrer">
                         <Eye className="w-4 h-4 mr-2" />
                         Open PDF in New Tab
                       </a>
