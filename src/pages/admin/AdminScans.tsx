@@ -155,9 +155,9 @@ const AdminScans = () => {
         newTab.focus();
       }
       
-      // Cleanup after a delay (browser needs time to load it)
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-      
+      // Note: We intentionally do NOT revoke the blob URL.
+      // Chrome's PDF viewer needs the URL to remain valid for the entire viewing session.
+      // The blob will be garbage-collected automatically when the tab is closed.
     } catch (error) {
       console.error('Failed to open PDF:', error);
       
