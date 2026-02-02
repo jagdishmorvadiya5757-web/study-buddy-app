@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   usePendingScans, 
   useAllSharedScans,
@@ -43,7 +44,9 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  FileText
+  FileText,
+  Download,
+  Loader2
 } from 'lucide-react';
 
 const AdminScans = () => {
@@ -58,10 +61,53 @@ const AdminScans = () => {
   const [rejectingScan, setRejectingScan] = useState<UserScan | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
-  const previewProxyUrl = previewScan
-    ? `/functions/v1/scan-file-proxy?scanId=${encodeURIComponent(previewScan.id)}`
-    : '';
+  const handleOpenPdf = async () => {
+    if (!previewScan) return;
+    
+    setIsLoadingPdf(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      
+      if (!token) {
+        toast.error('Please log in to view PDFs');
+        return;
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const proxyUrl = `${supabaseUrl}/functions/v1/scan-file-proxy?scanId=${encodeURIComponent(previewScan.id)}`;
+      
+      // Fetch the PDF through the proxy with auth
+      const response = await fetch(proxyUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to load PDF');
+      }
+
+      // Get the blob and create an object URL
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Open in new tab
+      window.open(blobUrl, '_blank');
+      
+      // Cleanup after a delay (browser needs time to load it)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      
+    } catch (error) {
+      console.error('Failed to open PDF:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to open PDF');
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
 
   const handleApprove = async (scan: UserScan) => {
     if (!user) return;
@@ -374,13 +420,15 @@ const AdminScans = () => {
                   <>
                     <FileText className="w-16 h-16 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground text-center px-4">
-                      If your browser blocks the storage domain, open the PDF via the app proxy:
+                      Click below to securely view the PDF:
                     </p>
-                    <Button asChild>
-                      <a href={previewProxyUrl} target="_blank" rel="noopener noreferrer">
+                    <Button onClick={handleOpenPdf} disabled={isLoadingPdf}>
+                      {isLoadingPdf ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
                         <Eye className="w-4 h-4 mr-2" />
-                        Open PDF in New Tab
-                      </a>
+                      )}
+                      {isLoadingPdf ? 'Loading...' : 'Open PDF in New Tab'}
                     </Button>
                   </>
                 ) : (
