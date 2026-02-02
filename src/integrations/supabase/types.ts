@@ -375,6 +375,7 @@ export type Database = {
         Args: { resource_id: string }
         Returns: undefined
       }
+      is_admin_or_subadmin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "student" | "sub_admin"

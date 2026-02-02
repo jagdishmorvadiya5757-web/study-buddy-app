@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useSessionTracking, useInstallTracking } from "@/hooks/useSessionTracking";
 import RequireAuth from "@/components/auth/RequireAuth";
+import RequireAdminOnly from "@/components/auth/RequireAdminOnly";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Resources from "./pages/Resources";
@@ -16,6 +17,7 @@ import AdminBranches from "./pages/admin/AdminBranches";
 import AdminResources from "./pages/admin/AdminResources";
 import AdminScans from "./pages/admin/AdminScans";
 import AdminAudit from "./pages/admin/AdminAudit";
+import AdminSubAdmins from "./pages/admin/AdminSubAdmins";
 import SmartScanner from "./pages/SmartScanner";
 import Library from "./pages/Library";
 import Profile from "./pages/Profile";
@@ -46,13 +48,16 @@ const App = () => (
               <Route path="/resources" element={<RequireAuth><Resources /></RequireAuth>} />
               <Route path="/branches" element={<RequireAuth><Branches /></RequireAuth>} />
               
-              {/* Admin Routes */}
-              <Route path="/admin" element={<RequireAuth><AdminDashboard /></RequireAuth>} />
-              <Route path="/admin/branches" element={<RequireAuth><AdminBranches /></RequireAuth>} />
+              {/* Admin Routes - Full admins only */}
+              <Route path="/admin" element={<RequireAuth><RequireAdminOnly><AdminDashboard /></RequireAdminOnly></RequireAuth>} />
+              <Route path="/admin/branches" element={<RequireAuth><RequireAdminOnly><AdminBranches /></RequireAdminOnly></RequireAuth>} />
+              <Route path="/admin/scans" element={<RequireAuth><RequireAdminOnly><AdminScans /></RequireAdminOnly></RequireAuth>} />
+              <Route path="/admin/sub-admins" element={<RequireAuth><RequireAdminOnly><AdminSubAdmins /></RequireAdminOnly></RequireAuth>} />
+              <Route path="/admin/audit" element={<RequireAuth><RequireAdminOnly><AdminAudit /></RequireAdminOnly></RequireAuth>} />
+              
+              {/* Admin Routes - Admins and Sub-admins */}
               <Route path="/admin/resources" element={<RequireAuth><AdminResources /></RequireAuth>} />
               <Route path="/admin/resources/new" element={<RequireAuth><Admin /></RequireAuth>} />
-              <Route path="/admin/scans" element={<RequireAuth><AdminScans /></RequireAuth>} />
-              <Route path="/admin/audit" element={<RequireAuth><AdminAudit /></RequireAuth>} />
               
               {/* User Routes */}
               <Route path="/scanner" element={<RequireAuth><SmartScanner /></RequireAuth>} />

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   FolderTree,
@@ -8,18 +9,26 @@ import {
   ClipboardList,
   Settings,
   Shield,
+  Users,
 } from 'lucide-react';
-
-const navItems = [
-  { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/admin/branches', icon: FolderTree, label: 'Branches' },
-  { href: '/admin/resources', icon: FileText, label: 'Resources' },
-  { href: '/admin/scans', icon: ScanLine, label: 'Scan Review' },
-  { href: '/admin/audit', icon: ClipboardList, label: 'Audit Logs' },
-];
 
 const AdminSidebar = () => {
   const location = useLocation();
+  const { isAdmin } = useAuth();
+
+  // Full nav for admins, limited for sub-admins
+  const navItems = isAdmin
+    ? [
+        { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+        { href: '/admin/branches', icon: FolderTree, label: 'Branches' },
+        { href: '/admin/resources', icon: FileText, label: 'Resources' },
+        { href: '/admin/scans', icon: ScanLine, label: 'Scan Review' },
+        { href: '/admin/sub-admins', icon: Users, label: 'Sub-Admins' },
+        { href: '/admin/audit', icon: ClipboardList, label: 'Audit Logs' },
+      ]
+    : [
+        { href: '/admin/resources', icon: FileText, label: 'Resources' },
+      ];
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-card border-r border-border">
@@ -29,8 +38,12 @@ const AdminSidebar = () => {
           <Shield className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <p className="font-display font-bold text-foreground">GTU Admin</p>
-          <p className="text-xs text-muted-foreground">Control Panel</p>
+          <p className="font-display font-bold text-foreground">
+            {isAdmin ? 'GTU Admin' : 'Sub-Admin'}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {isAdmin ? 'Control Panel' : 'Resource Manager'}
+          </p>
         </div>
       </div>
 
