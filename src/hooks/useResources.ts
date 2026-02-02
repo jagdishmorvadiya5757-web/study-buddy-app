@@ -88,6 +88,27 @@ export const useCreateResource = () => {
   });
 };
 
+export const useUpdateResource = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Resource> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('resources')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resources'] });
+    },
+  });
+};
+
 export const useDeleteResource = () => {
   const queryClient = useQueryClient();
 

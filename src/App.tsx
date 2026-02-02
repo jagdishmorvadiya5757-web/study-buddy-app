@@ -11,6 +11,10 @@ import Resources from "./pages/Resources";
 import Branches from "./pages/Branches";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminBranches from "./pages/admin/AdminBranches";
+import AdminResources from "./pages/admin/AdminResources";
+import AdminScans from "./pages/admin/AdminScans";
+import AdminAudit from "./pages/admin/AdminAudit";
 import SmartScanner from "./pages/SmartScanner";
 import Library from "./pages/Library";
 import Profile from "./pages/Profile";
@@ -38,11 +42,20 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/branches" element={<Branches />} />
+              
+              {/* Admin Routes */}
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/resources" element={<Admin />} />
+              <Route path="/admin/branches" element={<AdminBranches />} />
+              <Route path="/admin/resources" element={<AdminResources />} />
+              <Route path="/admin/resources/new" element={<Admin />} />
+              <Route path="/admin/scans" element={<AdminScans />} />
+              <Route path="/admin/audit" element={<AdminAudit />} />
+              
+              {/* User Routes */}
               <Route path="/scanner" element={<SmartScanner />} />
               <Route path="/library" element={<Library />} />
               <Route path="/profile" element={<Profile />} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
