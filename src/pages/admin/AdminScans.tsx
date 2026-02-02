@@ -126,33 +126,71 @@ const AdminScans = () => {
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
 
-      // Some Chrome extensions (adblock/privacy tools) can block top-level navigations
-      // with ERR_BLOCKED_BY_CLIENT. To avoid that, keep the tab on about:blank and
-      // embed the PDF via an iframe.
-      try {
-        const safeTitle = (previewScan.title || 'Scan PDF').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        newTab.document.open();
-        newTab.document.write(`<!doctype html>
+      const safeTitle = (previewScan.title || 'Scan PDF')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      // IMPORTANT:
+      // Many Chrome extensions break embedded PDF viewers (iframe/embed) and show
+      // “It may have been moved, edited, or deleted”. The most reliable approach is
+      // to navigate the new tab directly to the blob URL (top-level navigation).
+      //
+      // If navigation gets blocked (some privacy tools), we show a simple fallback page
+      // with a clickable link.
+      const renderFallbackPage = () => {
+        try {
+          newTab.document.open();
+          newTab.document.write(`<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${safeTitle}</title>
     <style>
-      html, body { height: 100%; margin: 0; }
-      .frame { width: 100%; height: 100%; border: 0; }
+      html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      .wrap { max-width: 720px; margin: 40px auto; padding: 0 16px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
+      a { word-break: break-all; }
+      .muted { color: #6b7280; font-size: 14px; }
+      .btn { display: inline-block; margin-top: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid #e5e7eb; text-decoration: none; }
     </style>
   </head>
   <body>
-    <iframe class="frame" src="${blobUrl}" title="${safeTitle}"></iframe>
+    <div class="wrap">
+      <h1 style="margin:0 0 12px 0; font-size:18px;">${safeTitle}</h1>
+      <div class="card">
+        <div class="muted">Your browser/extension blocked automatic PDF opening. Click below to open the PDF directly.</div>
+        <a class="btn" href="${blobUrl}" target="_self" rel="noreferrer">Open PDF</a>
+        <div class="muted" style="margin-top:10px;">If it still fails, try Chrome Incognito or temporarily disable ad-block/privacy extensions for this site.</div>
+      </div>
+    </div>
   </body>
 </html>`);
-        newTab.document.close();
-        newTab.focus();
-      } catch {
-        // Fallback: if document access is blocked for any reason, try normal navigation.
+          newTab.document.close();
+          newTab.focus();
+        } catch {
+          // ignore
+        }
+      };
+
+      try {
         newTab.location.href = blobUrl;
         newTab.focus();
+
+        // If navigation was blocked, the tab often stays on about:blank.
+        // We check shortly after and render a fallback page with a manual link.
+        window.setTimeout(() => {
+          try {
+            if (newTab.closed) return;
+            if (newTab.location.href === 'about:blank') {
+              renderFallbackPage();
+            }
+          } catch {
+            // If we can't read location, do nothing.
+          }
+        }, 300);
+      } catch {
+        renderFallbackPage();
       }
       
       // Note: We intentionally do NOT revoke the blob URL.
