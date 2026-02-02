@@ -142,4 +142,12 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .pb-safe {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0));
+  }
 }

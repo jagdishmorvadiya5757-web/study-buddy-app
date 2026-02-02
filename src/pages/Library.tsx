@@ -1,0 +1,459 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Share } from '@capacitor/share';
+import Header from '@/components/gtu/Header';
+import Footer from '@/components/gtu/Footer';
+import BottomNavigation from '@/components/gtu/BottomNavigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { 
+  Search, 
+  FileText, 
+  MoreVertical, 
+  ExternalLink, 
+  Edit2, 
+  Share2, 
+  Trash2,
+  ScanLine,
+  Download,
+  FolderOpen
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Link, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+
+type TabType = 'scans' | 'downloads';
+
+interface UserScan {
+  id: string;
+  title: string;
+  file_url: string;
+  thumbnail_url: string | null;
+  page_count: number;
+  file_size_bytes: number | null;
+  created_at: string;
+}
+
+interface UserDownload {
+  id: string;
+  downloaded_at: string;
+  resource: {
+    id: string;
+    title: string;
+    subject_name: string;
+    resource_type: string;
+    file_url: string | null;
+    external_url: string | null;
+  };
+}
+
+const Library = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<TabType>('scans');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [renameDialog, setRenameDialog] = useState<{ open: boolean; scan: UserScan | null }>({ open: false, scan: null });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; scan: UserScan | null }>({ open: false, scan: null });
+  const [newTitle, setNewTitle] = useState('');
+
+  // Fetch user scans
+  const { data: scans, isLoading: scansLoading } = useQuery({
+    queryKey: ['user-scans', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('user_scans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as UserScan[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch user downloads
+  const { data: downloads, isLoading: downloadsLoading } = useQuery({
+    queryKey: ['user-downloads', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('user_downloads')
+        .select(`
+          id,
+          downloaded_at,
+          resource:resources (
+            id,
+            title,
+            subject_name,
+            resource_type,
+            file_url,
+            external_url
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('is_saved', true)
+        .order('downloaded_at', { ascending: false });
+      if (error) throw error;
+      return data as unknown as UserDownload[];
+    },
+    enabled: !!user,
+  });
+
+  // Rename mutation
+  const renameMutation = useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const { error } = await supabase
+        .from('user_scans')
+        .update({ title })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-scans'] });
+      toast.success('Renamed successfully');
+      setRenameDialog({ open: false, scan: null });
+    },
+    onError: () => {
+      toast.error('Failed to rename');
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (scan: UserScan) => {
+      // Delete from storage first
+      const fileName = scan.file_url.split('/').pop();
+      if (fileName && user) {
+        await supabase.storage
+          .from('user-scans')
+          .remove([`${user.id}/${fileName}`]);
+      }
+      // Delete from database
+      const { error } = await supabase
+        .from('user_scans')
+        .delete()
+        .eq('id', scan.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-scans'] });
+      toast.success('Deleted successfully');
+      setDeleteDialog({ open: false, scan: null });
+    },
+    onError: () => {
+      toast.error('Failed to delete');
+    },
+  });
+
+  const handleShare = async (url: string, title: string) => {
+    try {
+      await Share.share({
+        title: title,
+        url: url,
+        dialogTitle: 'Share with friends',
+      });
+    } catch (error) {
+      // Fallback for web
+      if (navigator.share) {
+        await navigator.share({ title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copied to clipboard');
+      }
+    }
+  };
+
+  const filteredScans = scans?.filter(scan =>
+    scan.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredDownloads = downloads?.filter(download =>
+    download.resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    download.resource.subject_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <FolderOpen className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Sign in to access your library</h2>
+            <p className="text-muted-foreground mb-4">Your scans and downloads will appear here</p>
+            <Button asChild>
+              <Link to="/auth">Sign In</Link>
+            </Button>
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col pb-20">
+      <Header />
+      
+      <main className="flex-1">
+        {/* Header */}
+        <section className="bg-muted/50 py-8 border-b border-border">
+          <div className="container mx-auto px-4">
+            <h1 className="font-display text-2xl font-bold text-foreground mb-4">
+              My Library
+            </h1>
+            
+            {/* Segmented Control */}
+            <div className="flex bg-muted rounded-lg p-1 mb-4">
+              <button
+                onClick={() => setActiveTab('scans')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'scans' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground'
+                }`}
+              >
+                My Scans
+              </button>
+              <button
+                onClick={() => setActiveTab('downloads')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'downloads' 
+                    ? 'bg-background text-foreground shadow-sm' 
+                    : 'text-muted-foreground'
+                }`}
+              >
+                Downloaded Materials
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="Search files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Content */}
+        <section className="py-6">
+          <div className="container mx-auto px-4">
+            {activeTab === 'scans' ? (
+              scansLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="aspect-[3/4] rounded-xl" />
+                  ))}
+                </div>
+              ) : filteredScans && filteredScans.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredScans.map((scan) => (
+                    <div 
+                      key={scan.id} 
+                      className="bg-card rounded-xl shadow-soft overflow-hidden group"
+                    >
+                      <div className="aspect-[3/4] bg-muted flex items-center justify-center relative">
+                        <FileText className="w-12 h-12 text-muted-foreground/30" />
+                        <div className="absolute top-2 right-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/50 text-white hover:bg-black/70">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => window.open(scan.file_url, '_blank')}>
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Open
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setNewTitle(scan.title);
+                                setRenameDialog({ open: true, scan });
+                              }}>
+                                <Edit2 className="w-4 h-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleShare(scan.file_url, scan.title)}>
+                                <Share2 className="w-4 h-4 mr-2" />
+                                Share
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => setDeleteDialog({ open: true, scan })}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm line-clamp-1">{scan.title}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {scan.page_count} page{scan.page_count !== 1 ? 's' : ''} • {formatFileSize(scan.file_size_bytes)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(scan.created_at), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <ScanLine className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+                  <h3 className="font-display text-xl font-semibold text-foreground mb-2">
+                    No Scans Yet
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    Start scanning documents to build your library
+                  </p>
+                  <Button asChild>
+                    <Link to="/scanner">
+                      <ScanLine className="w-4 h-4 mr-2" />
+                      Start Your First Scan
+                    </Link>
+                  </Button>
+                </div>
+              )
+            ) : (
+              downloadsLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="aspect-[3/4] rounded-xl" />
+                  ))}
+                </div>
+              ) : filteredDownloads && filteredDownloads.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredDownloads.map((download) => (
+                    <div 
+                      key={download.id} 
+                      className="bg-card rounded-xl shadow-soft overflow-hidden"
+                    >
+                      <div className="aspect-[3/4] bg-muted flex items-center justify-center relative">
+                        <Download className="w-12 h-12 text-muted-foreground/30" />
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm line-clamp-1">{download.resource.title}</h3>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {download.resource.subject_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(download.downloaded_at), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <Download className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+                  <h3 className="font-display text-xl font-semibold text-foreground mb-2">
+                    No Downloads Yet
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    Browse resources and save them to your library
+                  </p>
+                  <Button asChild>
+                    <Link to="/resources">Browse Resources</Link>
+                  </Button>
+                </div>
+              )
+            )}
+          </div>
+        </section>
+      </main>
+
+      <BottomNavigation />
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialog.open} onOpenChange={(open) => setRenameDialog({ open, scan: renameDialog.scan })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Enter new name"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialog({ open: false, scan: null })}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => renameDialog.scan && renameMutation.mutate({ id: renameDialog.scan.id, title: newTitle })}
+              disabled={!newTitle.trim()}
+            >
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, scan: deleteDialog.scan })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Scan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteDialog.scan?.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteDialog.scan && deleteMutation.mutate(deleteDialog.scan)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default Library;

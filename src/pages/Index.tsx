@@ -3,6 +3,7 @@ import HeroSection from '@/components/gtu/HeroSection';
 import BranchCard from '@/components/gtu/BranchCard';
 import TrendingResources from '@/components/gtu/TrendingResources';
 import Footer from '@/components/gtu/Footer';
+import BottomNavigation from '@/components/gtu/BottomNavigation';
 import { useBranches } from '@/hooks/useBranches';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
@@ -31,7 +32,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <Header />
       <HeroSection />
       
@@ -133,6 +134,7 @@ const Index = () => {
       </section>
 
       <Footer />
+      <BottomNavigation />
     </div>
   );
 };

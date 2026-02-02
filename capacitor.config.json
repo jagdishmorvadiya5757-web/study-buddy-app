@@ -1,0 +1,17 @@
+{
+  "appId": "app.lovable.913e6cf16efc41f58751031087d139e5",
+  "appName": "GTU Study Mates",
+  "webDir": "dist",
+  "server": {
+    "url": "https://913e6cf1-6efc-41f5-8751-031087d139e5.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  },
+  "plugins": {
+    "Camera": {
+      "permissions": ["camera"]
+    },
+    "Filesystem": {
+      "permissions": ["publicStorage"]
+    }
+  }
+}
