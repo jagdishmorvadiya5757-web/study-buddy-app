@@ -45,7 +45,6 @@ import {
   XCircle,
   Search,
   FileText,
-  Download,
   Loader2
 } from 'lucide-react';
 
@@ -67,12 +66,21 @@ const AdminScans = () => {
     if (!previewScan) return;
     
     setIsLoadingPdf(true);
+    // Open the tab immediately (avoids popup blockers since this is user-initiated)
+    const newTab = window.open('about:blank', '_blank');
+    if (!newTab) {
+      toast.error('Popup blocked. Please allow popups and try again.');
+      setIsLoadingPdf(false);
+      return;
+    }
+
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       
       if (!token) {
         toast.error('Please log in to view PDFs');
+        newTab.close();
         return;
       }
 
@@ -95,8 +103,9 @@ const AdminScans = () => {
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       
-      // Open in new tab
-      window.open(blobUrl, '_blank');
+      // Navigate the already-opened tab to the blob URL
+      newTab.location.href = blobUrl;
+      newTab.focus();
       
       // Cleanup after a delay (browser needs time to load it)
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
@@ -104,6 +113,11 @@ const AdminScans = () => {
     } catch (error) {
       console.error('Failed to open PDF:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to open PDF');
+      try {
+        newTab.close();
+      } catch {
+        // ignore
+      }
     } finally {
       setIsLoadingPdf(false);
     }
