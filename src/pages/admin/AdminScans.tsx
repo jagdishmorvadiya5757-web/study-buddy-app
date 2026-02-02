@@ -61,15 +61,35 @@ const AdminScans = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<{ code: number; message: string } | null>(null);
+
+  const getErrorMessage = (status: number, responseText: string): { code: number; message: string } => {
+    switch (status) {
+      case 401:
+        return { code: 401, message: 'Session expired. Please log in again.' };
+      case 403:
+        return { code: 403, message: 'Access denied. Admin privileges required.' };
+      case 404:
+        return { code: 404, message: 'Scan not found or file was deleted.' };
+      case 400:
+        return { code: 400, message: responseText || 'Invalid request.' };
+      case 500:
+        return { code: 500, message: 'Server error. Please try again later.' };
+      default:
+        return { code: status, message: responseText || 'Failed to load PDF.' };
+    }
+  };
 
   const handleOpenPdf = async () => {
     if (!previewScan) return;
     
     setIsLoadingPdf(true);
+    setPdfError(null);
+    
     // Open the tab immediately (avoids popup blockers since this is user-initiated)
     const newTab = window.open('about:blank', '_blank');
     if (!newTab) {
-      toast.error('Popup blocked. Please allow popups and try again.');
+      setPdfError({ code: 0, message: 'Popup blocked by browser. Please allow popups for this site and try again.' });
       setIsLoadingPdf(false);
       return;
     }
@@ -79,7 +99,7 @@ const AdminScans = () => {
       const token = sessionData?.session?.access_token;
       
       if (!token) {
-        toast.error('Please log in to view PDFs');
+        setPdfError({ code: 401, message: 'Not logged in. Please sign in to view PDFs.' });
         newTab.close();
         return;
       }
@@ -96,7 +116,10 @@ const AdminScans = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'Failed to load PDF');
+        const error = getErrorMessage(response.status, errorText);
+        setPdfError(error);
+        newTab.close();
+        return;
       }
 
       // Get the blob and create an object URL
@@ -112,7 +135,14 @@ const AdminScans = () => {
       
     } catch (error) {
       console.error('Failed to open PDF:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to open PDF');
+      
+      // Check for network/CORS errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setPdfError({ code: 0, message: 'Network error. The request may be blocked by your browser or a firewall.' });
+      } else {
+        setPdfError({ code: 0, message: error instanceof Error ? error.message : 'Failed to open PDF. Please try again.' });
+      }
+      
       try {
         newTab.close();
       } catch {
@@ -403,7 +433,7 @@ const AdminScans = () => {
       </Card>
 
       {/* Preview Dialog */}
-      <Dialog open={!!previewScan} onOpenChange={(open) => !open && setPreviewScan(null)}>
+      <Dialog open={!!previewScan} onOpenChange={(open) => { if (!open) { setPreviewScan(null); setPdfError(null); } }}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{previewScan?.title}</DialogTitle>
@@ -429,8 +459,35 @@ const AdminScans = () => {
                 </div>
               </div>
               
-              <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center gap-4">
-                {previewScan.file_url ? (
+              <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center gap-4 p-4">
+                {pdfError ? (
+                  <>
+                    <XCircle className="w-16 h-16 text-destructive" />
+                    <div className="text-center space-y-2">
+                      <p className="text-sm font-medium text-destructive">
+                        {pdfError.code > 0 ? `Error ${pdfError.code}` : 'Error'}
+                      </p>
+                      <p className="text-sm text-muted-foreground px-4">
+                        {pdfError.message}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setPdfError(null);
+                        handleOpenPdf();
+                      }}
+                      disabled={isLoadingPdf}
+                    >
+                      {isLoadingPdf ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Eye className="w-4 h-4 mr-2" />
+                      )}
+                      Try Again
+                    </Button>
+                  </>
+                ) : previewScan.file_url ? (
                   <>
                     <FileText className="w-16 h-16 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground text-center px-4">
