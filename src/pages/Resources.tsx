@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/gtu/Header';
 import Footer from '@/components/gtu/Footer';
+import BottomNavigation from '@/components/gtu/BottomNavigation';
 import SemesterFilter from '@/components/gtu/SemesterFilter';
 import ResourceTypeFilter from '@/components/gtu/ResourceTypeFilter';
 import ResourceCard from '@/components/gtu/ResourceCard';
@@ -48,7 +49,7 @@ const Resources = () => {
   const selectedBranchName = branches?.find(b => b.id === selectedBranch)?.name;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-20">
       <Header />
 
       <main className="flex-1">
@@ -163,6 +164,7 @@ const Resources = () => {
       </main>
 
       <Footer />
+      <BottomNavigation />
     </div>
   );
 };

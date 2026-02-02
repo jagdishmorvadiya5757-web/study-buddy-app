@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_installs: {
+        Row: {
+          app_version: string | null
+          device_id: string | null
+          id: string
+          installed_at: string
+          platform: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          device_id?: string | null
+          id?: string
+          installed_at?: string
+          platform?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          device_id?: string | null
+          id?: string
+          installed_at?: string
+          platform?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
           code: string
@@ -168,6 +195,38 @@ export type Database = {
           },
         ]
       }
+      user_downloads: {
+        Row: {
+          downloaded_at: string
+          id: string
+          is_saved: boolean | null
+          resource_id: string
+          user_id: string
+        }
+        Insert: {
+          downloaded_at?: string
+          id?: string
+          is_saved?: boolean | null
+          resource_id: string
+          user_id: string
+        }
+        Update: {
+          downloaded_at?: string
+          id?: string
+          is_saved?: boolean | null
+          resource_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_downloads_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -186,6 +245,72 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_scans: {
+        Row: {
+          created_at: string
+          file_size_bytes: number | null
+          file_url: string
+          id: string
+          page_count: number | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_size_bytes?: number | null
+          file_url: string
+          id?: string
+          page_count?: number | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_size_bytes?: number | null
+          file_url?: string
+          id?: string
+          page_count?: number | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string
+          device_info: Json | null
+          duration_seconds: number | null
+          id: string
+          session_end: string | null
+          session_start: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_info?: Json | null
+          duration_seconds?: number | null
+          id?: string
+          session_end?: string | null
+          session_start?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_info?: Json | null
+          duration_seconds?: number | null
+          id?: string
+          session_end?: string | null
+          session_start?: string
+          user_id?: string | null
         }
         Relationships: []
       }
