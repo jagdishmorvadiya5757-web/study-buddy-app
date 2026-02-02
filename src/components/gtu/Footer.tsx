@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
-import { GraduationCap, Mail, MapPin, Phone } from 'lucide-react';
-
-const GTU_LOGO = 'https://www.gtu.ac.in/img/gtu_logo.png';
+import { GraduationCap, Mail, MapPin } from 'lucide-react';
+import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
 
 const Footer = () => {
   return (
@@ -12,9 +11,9 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src={GTU_LOGO}
-                alt="GTU Logo"
-                className="h-12 w-12 object-contain bg-white rounded-lg p-1"
+                src={gtuVerseLogo}
+                alt="GTU-VERSE Logo"
+                className="h-12 w-12 object-contain rounded-full"
               />
               <div>
                 <h3 className="font-display text-lg font-bold">GTU Study Mates</h3>
