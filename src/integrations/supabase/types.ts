@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
       app_installs: {
         Row: {
           app_version: string | null
@@ -254,7 +284,12 @@ export type Database = {
           file_size_bytes: number | null
           file_url: string
           id: string
+          is_shared: boolean | null
           page_count: number | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          share_status: string | null
           thumbnail_url: string | null
           title: string
           updated_at: string
@@ -265,7 +300,12 @@ export type Database = {
           file_size_bytes?: number | null
           file_url: string
           id?: string
+          is_shared?: boolean | null
           page_count?: number | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          share_status?: string | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string
@@ -276,7 +316,12 @@ export type Database = {
           file_size_bytes?: number | null
           file_url?: string
           id?: string
+          is_shared?: boolean | null
           page_count?: number | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          share_status?: string | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
