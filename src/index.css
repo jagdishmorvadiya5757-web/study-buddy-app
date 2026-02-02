@@ -150,4 +150,13 @@
   .pb-safe {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0));
   }
+
+  /* react-pdf styles */
+  .react-pdf__Page {
+    background: transparent !important;
+  }
+  
+  .react-pdf__Page__canvas {
+    border-radius: 0.5rem;
+  }
 }
