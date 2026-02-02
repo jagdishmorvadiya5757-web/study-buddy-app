@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2, AlertCircle, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2, AlertCircle, Download, Maximize, Minimize } from 'lucide-react';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -18,6 +18,38 @@ const PdfViewer = ({ pdfUrl, title, onError }: PdfViewerProps) => {
   const [scale, setScale] = useState<number>(1);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Listen for fullscreen changes (including Esc key)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setPageNumber((prev) => Math.max(prev - 1, 1));
+      } else if (e.key === 'ArrowRight') {
+        setPageNumber((prev) => Math.min(prev + 1, numPages));
+      } else if (e.key === '+' || e.key === '=') {
+        setScale((prev) => Math.min(prev + 0.25, 3));
+      } else if (e.key === '-') {
+        setScale((prev) => Math.max(prev - 0.25, 0.5));
+      } else if (e.key === 'Escape' && isFullscreen) {
+        document.exitFullscreen?.();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [numPages, isFullscreen]);
 
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -55,6 +87,20 @@ const PdfViewer = ({ pdfUrl, title, onError }: PdfViewerProps) => {
     link.click();
   };
 
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
+  };
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
@@ -65,7 +111,10 @@ const PdfViewer = ({ pdfUrl, title, onError }: PdfViewerProps) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div 
+      ref={containerRef} 
+      className={`flex flex-col h-full ${isFullscreen ? 'bg-background' : ''}`}
+    >
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 p-2 border-b bg-muted/30 rounded-t-lg">
         <div className="flex items-center gap-1">
@@ -112,6 +161,7 @@ const PdfViewer = ({ pdfUrl, title, onError }: PdfViewerProps) => {
           >
             <ZoomIn className="w-4 h-4" />
           </Button>
+          <div className="w-px h-5 bg-border mx-1" />
           <Button
             variant="ghost"
             size="icon"
@@ -120,6 +170,15 @@ const PdfViewer = ({ pdfUrl, title, onError }: PdfViewerProps) => {
             title="Download PDF"
           >
             <Download className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleFullscreen}
+            className="h-8 w-8"
+            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          >
+            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </Button>
         </div>
       </div>
