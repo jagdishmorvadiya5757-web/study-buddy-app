@@ -17,6 +17,7 @@ import AdminBranches from "./pages/admin/AdminBranches";
 import AdminResources from "./pages/admin/AdminResources";
 import AdminScans from "./pages/admin/AdminScans";
 import AdminAudit from "./pages/admin/AdminAudit";
+import AdminAbout from "./pages/admin/AdminAbout";
 import AdminSubAdmins from "./pages/admin/AdminSubAdmins";
 import SmartScanner from "./pages/SmartScanner";
 import Library from "./pages/Library";
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/admin/scans" element={<RequireAuth><RequireAdminOnly><AdminScans /></RequireAdminOnly></RequireAuth>} />
               <Route path="/admin/sub-admins" element={<RequireAuth><RequireAdminOnly><AdminSubAdmins /></RequireAdminOnly></RequireAuth>} />
               <Route path="/admin/audit" element={<RequireAuth><RequireAdminOnly><AdminAudit /></RequireAdminOnly></RequireAuth>} />
+              <Route path="/admin/about" element={<RequireAuth><RequireAdminOnly><AdminAbout /></RequireAdminOnly></RequireAuth>} />
               
               {/* Admin Routes - Admins and Sub-admins */}
               <Route path="/admin/resources" element={<RequireAuth><AdminResources /></RequireAuth>} />

@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { GraduationCap, Mail, MapPin } from 'lucide-react';
 import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
+import { useAboutSettings } from '@/hooks/useSiteSettings';
 
 const Footer = () => {
+  const { data: settings } = useAboutSettings();
+
   return (
     <footer className="bg-foreground text-background py-12">
       <div className="container mx-auto px-4">
@@ -16,13 +19,12 @@ const Footer = () => {
                 className="h-12 w-12 object-contain rounded-full"
               />
               <div>
-                <h3 className="font-display text-lg font-bold">GTU Study Mates</h3>
-                <p className="text-sm text-background/70">Engineering Resources Portal</p>
+                <h3 className="font-display text-lg font-bold">{settings?.title || 'GTU-VERSE'}</h3>
+                <p className="text-sm text-background/70">{settings?.tagline || 'Engineering Resources Portal'}</p>
               </div>
             </div>
             <p className="text-sm text-background/70 max-w-md">
-              A comprehensive platform for GTU engineering students to access study materials, 
-              previous year papers, solutions, and more.
+              {settings?.description || 'A comprehensive platform for GTU engineering students to access study materials, previous year papers, solutions, and more.'}
             </p>
           </div>
 
@@ -30,18 +32,31 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm text-background/70">
-              <li>
-                <Link to="/" className="hover:text-secondary transition-colors">Home</Link>
-              </li>
-              <li>
-                <Link to="/resources" className="hover:text-secondary transition-colors">Resources</Link>
-              </li>
-              <li>
-                <Link to="/branches" className="hover:text-secondary transition-colors">Branches</Link>
-              </li>
-              <li>
-                <Link to="/auth" className="hover:text-secondary transition-colors">Login</Link>
-              </li>
+              {settings?.quick_links?.map((link, index) => (
+                <li key={index}>
+                  {link.url.startsWith('http') ? (
+                    <a 
+                      href={link.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="hover:text-secondary transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link to={link.url} className="hover:text-secondary transition-colors">
+                      {link.label}
+                    </Link>
+                  )}
+                </li>
+              )) || (
+                <>
+                  <li><Link to="/" className="hover:text-secondary transition-colors">Home</Link></li>
+                  <li><Link to="/resources" className="hover:text-secondary transition-colors">Resources</Link></li>
+                  <li><Link to="/branches" className="hover:text-secondary transition-colors">Branches</Link></li>
+                  <li><Link to="/auth" className="hover:text-secondary transition-colors">Login</Link></li>
+                </>
+              )}
             </ul>
           </div>
 
@@ -51,11 +66,11 @@ const Footer = () => {
             <ul className="space-y-3 text-sm text-background/70">
               <li className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-secondary" />
-                Gujarat, India
+                {settings?.contact_location || 'Gujarat, India'}
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-secondary" />
-                support@gtustudymates.com
+                {settings?.contact_email || 'support@gtuverse.com'}
               </li>
               <li className="flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-secondary" />
@@ -66,7 +81,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-background/10 mt-8 pt-8 text-center text-sm text-background/50">
-          <p>© 2025 GTU Study Mates. All rights reserved.</p>
+          <p>© 2025 {settings?.title || 'GTU-VERSE'}. All rights reserved.</p>
         </div>
       </div>
     </footer>

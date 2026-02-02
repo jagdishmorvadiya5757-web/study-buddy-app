@@ -10,6 +10,7 @@ import {
   Settings,
   Shield,
   Users,
+  Info,
 } from 'lucide-react';
 
 const AdminSidebar = () => {
@@ -24,6 +25,7 @@ const AdminSidebar = () => {
         { href: '/admin/resources', icon: FileText, label: 'Resources' },
         { href: '/admin/scans', icon: ScanLine, label: 'Scan Review' },
         { href: '/admin/sub-admins', icon: Users, label: 'Sub-Admins' },
+        { href: '/admin/about', icon: Info, label: 'About Section' },
         { href: '/admin/audit', icon: ClipboardList, label: 'Audit Logs' },
       ]
     : [
