@@ -2,12 +2,12 @@ import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface RequireAdminOnlyProps {
+interface RequireAdminOrSubAdminProps {
   children: ReactNode;
 }
 
-const RequireAdminOnly = ({ children }: RequireAdminOnlyProps) => {
-  const { user, isAdmin, isLoading } = useAuth();
+const RequireAdminOrSubAdmin = ({ children }: RequireAdminOrSubAdminProps) => {
+  const { user, canAccessAdmin, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -17,12 +17,12 @@ const RequireAdminOnly = ({ children }: RequireAdminOnlyProps) => {
     );
   }
 
-  // Only full admins can access these routes - redirect non-admins to home
-  if (!user || !isAdmin) {
+  // Only admins and sub-admins can access these routes
+  if (!user || !canAccessAdmin) {
     return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
 };
 
-export default RequireAdminOnly;
+export default RequireAdminOrSubAdmin;

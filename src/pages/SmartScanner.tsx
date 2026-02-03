@@ -1,7 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Share } from '@capacitor/share';
 import { jsPDF } from 'jspdf';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,7 +14,8 @@ import {
   X,
   Download,
   Trash2,
-  Wand2
+  Wand2,
+  ScanLine
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +27,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import DocumentEdgeDetector from '@/components/scanner/DocumentEdgeDetector';
+import PerspectiveCorrector from '@/components/scanner/PerspectiveCorrector';
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 interface ScannedPage {
   id: string;
@@ -36,12 +41,16 @@ interface ScannedPage {
   filter: 'original' | 'bw' | 'magic';
 }
 
+type ScannerStep = 'idle' | 'capturing' | 'adjusting' | 'reviewing';
+
 const SmartScanner = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [currentPage, setCurrentPage] = useState<ScannedPage | null>(null);
-  const [isReviewing, setIsReviewing] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedCorners, setCapturedCorners] = useState<Point[]>([]);
+  const [scannerStep, setScannerStep] = useState<ScannerStep>('idle');
   const [flashOn, setFlashOn] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -54,49 +63,43 @@ const SmartScanner = () => {
     setFileName(defaultName);
   }, []);
 
-  const captureImage = async () => {
-    try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.Base64,
-        source: CameraSource.Camera,
-      });
+  // Start camera capture
+  const startCapture = () => {
+    setScannerStep('capturing');
+  };
 
-      if (image.base64String) {
-        const newPage: ScannedPage = {
-          id: crypto.randomUUID(),
-          imageData: `data:image/${image.format};base64,${image.base64String}`,
-          filter: 'original',
-        };
-        setCurrentPage(newPage);
-        setIsReviewing(true);
-      }
-    } catch (error) {
-      console.error('Camera error:', error);
-      // Fallback for web: use file input
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment';
-      input.onchange = (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const newPage: ScannedPage = {
-              id: crypto.randomUUID(),
-              imageData: reader.result as string,
-              filter: 'original',
-            };
-            setCurrentPage(newPage);
-            setIsReviewing(true);
-          };
-          reader.readAsDataURL(file);
-        }
-      };
-      input.click();
-    }
+  // Handle image captured from edge detector
+  const handleImageCaptured = useCallback((imageData: string, corners: Point[]) => {
+    setCapturedImage(imageData);
+    setCapturedCorners(corners);
+    setScannerStep('adjusting');
+  }, []);
+
+  // Handle perspective correction complete
+  const handleCorrectionComplete = useCallback((correctedImage: string) => {
+    const newPage: ScannedPage = {
+      id: crypto.randomUUID(),
+      imageData: correctedImage,
+      filter: 'original',
+    };
+    setCurrentPage(newPage);
+    setCapturedImage(null);
+    setCapturedCorners([]);
+    setScannerStep('reviewing');
+  }, []);
+
+  // Cancel capture
+  const handleCancelCapture = () => {
+    setCapturedImage(null);
+    setCapturedCorners([]);
+    setScannerStep('idle');
+  };
+
+  // Retake from adjustment step
+  const handleRetakeFromAdjust = () => {
+    setCapturedImage(null);
+    setCapturedCorners([]);
+    setScannerStep('capturing');
   };
 
   const applyFilter = (filter: 'original' | 'bw' | 'magic') => {
@@ -159,13 +162,13 @@ const SmartScanner = () => {
       const processedImage = await processImage(currentPage.imageData, currentPage.filter);
       setPages([...pages, { ...currentPage, imageData: processedImage }]);
       setCurrentPage(null);
-      setIsReviewing(false);
+      setScannerStep('idle');
     }
   };
 
   const retakePage = () => {
     setCurrentPage(null);
-    setIsReviewing(false);
+    setScannerStep('capturing');
   };
 
   const removePage = (id: string) => {
@@ -263,8 +266,31 @@ const SmartScanner = () => {
     }
   };
 
-  // Review Screen
-  if (isReviewing && currentPage) {
+  // Edge Detection Camera View
+  if (scannerStep === 'capturing') {
+    return (
+      <DocumentEdgeDetector
+        onCapture={handleImageCaptured}
+        onCancel={handleCancelCapture}
+      />
+    );
+  }
+
+  // Perspective Correction View
+  if (scannerStep === 'adjusting' && capturedImage) {
+    return (
+      <PerspectiveCorrector
+        imageData={capturedImage}
+        initialCorners={capturedCorners}
+        onConfirm={handleCorrectionComplete}
+        onRetake={handleRetakeFromAdjust}
+        onCancel={handleCancelCapture}
+      />
+    );
+  }
+
+  // Review Screen with Filters
+  if (scannerStep === 'reviewing' && currentPage) {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col">
         <canvas ref={canvasRef} className="hidden" />
@@ -345,7 +371,7 @@ const SmartScanner = () => {
     );
   }
 
-  // Main Scanner View
+  // Main Scanner View (idle state)
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
       <canvas ref={canvasRef} className="hidden" />
@@ -384,7 +410,7 @@ const SmartScanner = () => {
                   </div>
                   <button
                     onClick={() => removePage(page.id)}
-                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground p-1 rounded-full"
                   >
                     <Trash2 className="w-2.5 h-2.5" />
                   </button>
@@ -392,7 +418,7 @@ const SmartScanner = () => {
               ))}
               {/* Compact Add Page button */}
               <button
-                onClick={captureImage}
+                onClick={startCapture}
                 className="aspect-[3/4] rounded-md border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
                 <Plus className="w-5 h-5" />
@@ -403,15 +429,15 @@ const SmartScanner = () => {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-              <CameraIcon className="w-12 h-12 text-primary" />
+              <ScanLine className="w-12 h-12 text-primary" />
             </div>
             <h2 className="text-xl font-semibold mb-2">Start Scanning</h2>
             <p className="text-muted-foreground mb-6">
-              Capture documents and convert them to PDF
+              Capture documents with edge detection and perspective correction
             </p>
-            <Button size="lg" onClick={captureImage}>
+            <Button size="lg" onClick={startCapture}>
               <CameraIcon className="w-5 h-5 mr-2" />
-              Take Photo
+              Scan Document
             </Button>
           </div>
         )}
@@ -424,7 +450,7 @@ const SmartScanner = () => {
             <span className="text-xs text-muted-foreground flex-shrink-0">
               {pages.length} page{pages.length !== 1 ? 's' : ''}
             </span>
-            <Button variant="outline" size="sm" onClick={captureImage} className="flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={startCapture} className="flex-shrink-0">
               <Plus className="w-4 h-4 mr-1" />
               Add
             </Button>
@@ -439,11 +465,11 @@ const SmartScanner = () => {
         </div>
       )}
 
-      {/* Floating Capture Button (when pages exist) */}
+      {/* Floating Capture Button (when no pages exist) */}
       {pages.length === 0 && (
         <div className="absolute bottom-8 left-0 right-0 flex justify-center">
           <button
-            onClick={captureImage}
+            onClick={startCapture}
             className="w-20 h-20 rounded-full bg-destructive shadow-lg flex items-center justify-center active:scale-95 transition-transform"
           >
             <div className="w-16 h-16 rounded-full border-4 border-white" />
