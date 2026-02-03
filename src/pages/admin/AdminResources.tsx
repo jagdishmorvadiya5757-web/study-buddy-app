@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,8 +31,9 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResources, useCreateResource, useDeleteResource, ResourceType } from '@/hooks/useResources';
 import { useBranches } from '@/hooks/useBranches';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, FileText, Search, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, FileText, Search, ExternalLink, Upload, File } from 'lucide-react';
 
 const resourceTypes: { value: ResourceType; label: string }[] = [
   { value: 'playlist', label: 'Video Playlist' },
@@ -63,6 +64,9 @@ const AdminResources = () => {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -83,6 +87,49 @@ const AdminResources = () => {
       subject_name: '',
       external_url: '',
     });
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Only PDF and Word documents are allowed');
+        return;
+      }
+      // Validate file size (max 50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error('File size must be less than 50MB');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const uploadFile = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `uploads/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('resources')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('Failed to upload file');
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('resources')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
   };
 
   const handleCreate = async () => {
@@ -92,7 +139,20 @@ const AdminResources = () => {
       return;
     }
 
+    // Require either file upload or external URL
+    if (!selectedFile && !formData.external_url) {
+      toast.error('Please upload a file or provide an external URL');
+      return;
+    }
+
     try {
+      setIsUploading(true);
+      let fileUrl: string | null = null;
+
+      if (selectedFile) {
+        fileUrl = await uploadFile(selectedFile);
+      }
+
       await createResource.mutateAsync({
         title: formData.title,
         description: formData.description || null,
@@ -101,7 +161,7 @@ const AdminResources = () => {
         semester: parseInt(formData.semester),
         subject_name: formData.subject_name,
         external_url: formData.external_url || null,
-        file_url: null,
+        file_url: fileUrl,
         thumbnail_url: null,
         is_active: true,
         uploaded_by: user?.id || null,
@@ -110,7 +170,10 @@ const AdminResources = () => {
       setIsCreateOpen(false);
       resetForm();
     } catch (error) {
+      console.error('Create error:', error);
       toast.error('Failed to create resource');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -226,6 +289,58 @@ const AdminResources = () => {
                 />
               </div>
 
+              {/* File Upload */}
+              <div className="space-y-2">
+                <Label>Upload File (PDF/Document)</Label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  {selectedFile ? (
+                    <div className="flex items-center gap-3">
+                      <File className="w-8 h-8 text-primary" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{selectedFile.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="file-upload"
+                      className="flex flex-col items-center justify-center cursor-pointer py-4"
+                    >
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <p className="text-sm font-medium">Click to upload</p>
+                      <p className="text-xs text-muted-foreground">PDF, DOC, DOCX (max 50MB)</p>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="relative flex items-center gap-3 py-2">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">OR</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
               <div className="space-y-2">
                 <Label>External URL (PDF/Video Link)</Label>
                 <Input
@@ -233,7 +348,13 @@ const AdminResources = () => {
                   placeholder="https://..."
                   value={formData.external_url}
                   onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
+                  disabled={!!selectedFile}
                 />
+                {selectedFile && (
+                  <p className="text-xs text-muted-foreground">
+                    Remove the uploaded file to use an external URL instead
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -249,9 +370,9 @@ const AdminResources = () => {
               <Button 
                 className="w-full" 
                 onClick={handleCreate}
-                disabled={createResource.isPending}
+                disabled={createResource.isPending || isUploading}
               >
-                {createResource.isPending ? 'Creating...' : 'Create Resource'}
+                {isUploading ? 'Uploading...' : createResource.isPending ? 'Creating...' : 'Create Resource'}
               </Button>
             </div>
           </DialogContent>

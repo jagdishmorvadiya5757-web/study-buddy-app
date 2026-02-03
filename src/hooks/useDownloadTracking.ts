@@ -1,14 +1,16 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Resource } from './useResources';
 
 export const useTrackDownload = () => {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async (resourceId: string) => {
       // Get current user if logged in
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Insert download record
+      // Insert download record for analytics
       const { error: insertError } = await supabase
         .from('resource_downloads')
         .insert({
@@ -20,6 +22,24 @@ export const useTrackDownload = () => {
         console.error('Error tracking download:', insertError);
       }
 
+      // If user is logged in, also save to user_downloads for their library
+      if (user) {
+        const { error: userDownloadError } = await supabase
+          .from('user_downloads')
+          .upsert({
+            resource_id: resourceId,
+            user_id: user.id,
+            is_saved: true,
+          }, {
+            onConflict: 'resource_id,user_id',
+            ignoreDuplicates: true,
+          });
+
+        if (userDownloadError) {
+          console.error('Error saving to user downloads:', userDownloadError);
+        }
+      }
+
       // Increment the download count using RPC
       const { error: rpcError } = await supabase.rpc('increment_download_count', {
         resource_id: resourceId,
@@ -29,6 +49,9 @@ export const useTrackDownload = () => {
         console.error('Error incrementing download count:', rpcError);
         throw rpcError;
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-downloads'] });
     },
   });
 };
