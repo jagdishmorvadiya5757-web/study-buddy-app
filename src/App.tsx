@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useSessionTracking, useInstallTracking } from "@/hooks/useSessionTracking";
 import RequireAuth from "@/components/auth/RequireAuth";
 import RequireAdminOnly from "@/components/auth/RequireAdminOnly";
+import RequireAdminOrSubAdmin from "@/components/auth/RequireAdminOrSubAdmin";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Resources from "./pages/Resources";
@@ -58,8 +59,8 @@ const App = () => (
               <Route path="/admin/about" element={<RequireAuth><RequireAdminOnly><AdminAbout /></RequireAdminOnly></RequireAuth>} />
               
               {/* Admin Routes - Admins and Sub-admins */}
-              <Route path="/admin/resources" element={<RequireAuth><AdminResources /></RequireAuth>} />
-              <Route path="/admin/resources/new" element={<RequireAuth><Admin /></RequireAuth>} />
+              <Route path="/admin/resources" element={<RequireAuth><RequireAdminOrSubAdmin><AdminResources /></RequireAdminOrSubAdmin></RequireAuth>} />
+              <Route path="/admin/resources/new" element={<RequireAuth><RequireAdminOrSubAdmin><Admin /></RequireAdminOrSubAdmin></RequireAuth>} />
               
               {/* User Routes */}
               <Route path="/scanner" element={<RequireAuth><SmartScanner /></RequireAuth>} />
