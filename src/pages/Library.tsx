@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +6,7 @@ import { Share } from '@capacitor/share';
 import Header from '@/components/gtu/Header';
 import Footer from '@/components/gtu/Footer';
 import BottomNavigation from '@/components/gtu/BottomNavigation';
+import PdfViewer from '@/components/admin/PdfViewer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -42,7 +44,9 @@ import {
   Trash2,
   ScanLine,
   Download,
-  FolderOpen
+  FolderOpen,
+  Eye,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
@@ -81,7 +85,40 @@ const Library = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [renameDialog, setRenameDialog] = useState<{ open: boolean; scan: UserScan | null }>({ open: false, scan: null });
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; scan: UserScan | null }>({ open: false, scan: null });
+  const [previewDialog, setPreviewDialog] = useState<{ open: boolean; scan: UserScan | null }>({ open: false, scan: null });
   const [newTitle, setNewTitle] = useState('');
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+
+  // Fetch PDF blob when preview dialog opens
+  useEffect(() => {
+    if (previewDialog.open && previewDialog.scan?.file_url) {
+      const fetchPdf = async () => {
+        setIsLoadingPdf(true);
+        setPdfBlobUrl(null);
+        try {
+          const response = await fetch(previewDialog.scan!.file_url);
+          if (!response.ok) throw new Error('Failed to fetch PDF');
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          setPdfBlobUrl(url);
+        } catch (error) {
+          console.error('Error fetching PDF:', error);
+          toast.error('Failed to load PDF');
+        } finally {
+          setIsLoadingPdf(false);
+        }
+      };
+      fetchPdf();
+    } else {
+      // Cleanup blob URL when dialog closes
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+        setPdfBlobUrl(null);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewDialog.open, previewDialog.scan?.file_url]);
 
   // Fetch user scans
   const { data: scans, isLoading: scansLoading } = useQuery({
@@ -302,9 +339,13 @@ const Library = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setPreviewDialog({ open: true, scan })}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => window.open(scan.file_url, '_blank')}>
                                 <ExternalLink className="w-4 h-4 mr-2" />
-                                Open
+                                Open in New Tab
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
                                 setNewTitle(scan.title);
@@ -452,6 +493,43 @@ const Library = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* PDF Preview Dialog */}
+      <Dialog 
+        open={previewDialog.open} 
+        onOpenChange={(open) => setPreviewDialog({ open, scan: open ? previewDialog.scan : null })}
+      >
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2 border-b">
+            <DialogTitle className="text-lg font-semibold line-clamp-1">
+              {previewDialog.scan?.title}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {previewDialog.scan?.page_count} page{previewDialog.scan?.page_count !== 1 ? 's' : ''} • {formatFileSize(previewDialog.scan?.file_size_bytes || null)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 h-[calc(85vh-80px)] overflow-hidden">
+            {isLoadingPdf ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : pdfBlobUrl ? (
+              <PdfViewer
+                pdfUrl={pdfBlobUrl}
+                title={previewDialog.scan?.title}
+                onError={(error) => {
+                  console.error('PDF viewer error:', error);
+                  toast.error('Failed to display PDF');
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No PDF to display
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
