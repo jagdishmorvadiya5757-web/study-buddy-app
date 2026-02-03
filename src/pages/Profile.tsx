@@ -11,17 +11,43 @@ import {
   ChevronRight,
   Settings,
   HelpCircle,
-  FileText
+  FileText,
+  Download,
+  Share2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const Profile = () => {
   const { user, userRole, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleShareApp = async () => {
+    const shareData = {
+      title: 'GTU Study Mates',
+      text: 'Check out GTU Study Mates - Your complete engineering resources portal!',
+      url: window.location.origin,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.origin);
+        toast({
+          title: 'Link Copied',
+          description: 'App link has been copied to clipboard.',
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
   };
 
   if (!user) {
@@ -44,6 +70,7 @@ const Profile = () => {
   }
 
   const menuItems = [
+    { icon: Download, label: 'My Downloads', href: '/library' },
     { icon: Settings, label: 'Settings', href: '/settings' },
     { icon: HelpCircle, label: 'Help & Support', href: '/help' },
     { icon: FileText, label: 'Terms & Privacy', href: '/terms' },
@@ -122,6 +149,18 @@ const Profile = () => {
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </Link>
             ))}
+            
+            {/* Share App Button */}
+            <button
+              onClick={handleShareApp}
+              className="flex items-center justify-between p-4 bg-card rounded-xl shadow-soft w-full text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Share2 className="w-5 h-5 text-muted-foreground" />
+                <span className="font-medium">Share App</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
           </div>
         </section>
 
