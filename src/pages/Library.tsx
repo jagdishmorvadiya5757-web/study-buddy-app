@@ -74,6 +74,7 @@ interface UserDownload {
     resource_type: string;
     file_url: string | null;
     external_url: string | null;
+    thumbnail_url: string | null;
   };
 }
 
@@ -152,7 +153,8 @@ const Library = () => {
             subject_name,
             resource_type,
             file_url,
-            external_url
+            external_url,
+            thumbnail_url
           )
         `)
         .eq('user_id', user.id)
@@ -329,8 +331,16 @@ const Library = () => {
                       key={scan.id} 
                       className="bg-card rounded-xl shadow-soft overflow-hidden group"
                     >
-                      <div className="aspect-[3/4] bg-muted flex items-center justify-center relative">
-                        <FileText className="w-12 h-12 text-muted-foreground/30" />
+                      <div className="aspect-[3/4] bg-muted flex items-center justify-center relative overflow-hidden">
+                        {scan.thumbnail_url ? (
+                          <img 
+                            src={scan.thumbnail_url} 
+                            alt={scan.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <FileText className="w-12 h-12 text-muted-foreground/30" />
+                        )}
                         <div className="absolute top-2 right-2">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -416,8 +426,16 @@ const Library = () => {
                         if (url) window.open(url, '_blank');
                       }}
                     >
-                      <div className="aspect-[3/4] bg-muted flex items-center justify-center relative">
-                        <Download className="w-12 h-12 text-muted-foreground/30" />
+                      <div className="aspect-[3/4] bg-muted flex items-center justify-center relative overflow-hidden">
+                        {download.resource.thumbnail_url ? (
+                          <img 
+                            src={download.resource.thumbnail_url} 
+                            alt={download.resource.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Download className="w-12 h-12 text-muted-foreground/30" />
+                        )}
                         <div className="absolute bottom-2 left-2">
                           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full capitalize">
                             {download.resource.resource_type.replace('_', ' ')}
