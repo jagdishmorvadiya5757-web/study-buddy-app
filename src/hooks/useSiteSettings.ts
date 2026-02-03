@@ -14,6 +14,7 @@ export interface AboutSettings {
   contact_email: string;
   contact_location: string;
   quick_links: QuickLink[];
+  logo_url?: string;
 }
 
 const defaultAboutSettings: AboutSettings = {

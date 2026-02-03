@@ -9,10 +9,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
+import { useAboutSettings } from '@/hooks/useSiteSettings';
 
 const Header = () => {
   const { user, isAdmin, isSubAdmin, canAccessAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const { data: settings } = useAboutSettings();
 
   const handleSignOut = async () => {
     await signOut();
@@ -24,15 +26,15 @@ const Header = () => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-3">
           <img
-            src={gtuVerseLogo}
-            alt="GTU-VERSE Logo"
-            className="h-12 w-12 object-contain rounded-full"
+            src={settings?.logo_url || gtuVerseLogo}
+            alt={settings?.title || 'GTU-VERSE'} 
+            className="h-12 w-12 object-cover rounded-full"
           />
           <div>
             <h1 className="font-display text-lg font-bold text-foreground leading-tight">
-              GTU Study Mates
+              {settings?.title || 'GTU Study Mates'}
             </h1>
-            <p className="text-xs text-muted-foreground">Engineering Resources Portal</p>
+            <p className="text-xs text-muted-foreground">{settings?.tagline || 'Engineering Resources Portal'}</p>
           </div>
         </Link>
 

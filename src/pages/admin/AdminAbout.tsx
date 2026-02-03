@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAboutSettings, useUpdateAboutSettings, AboutSettings, QuickLink } from '@/hooks/useSiteSettings';
-import { Save, Plus, Trash2, GripVertical, Loader2 } from 'lucide-react';
+import { Save, Plus, Trash2, GripVertical, Loader2, Upload, Image } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
 
 const AdminAbout = () => {
   const { data: settings, isLoading } = useAboutSettings();
@@ -19,7 +22,10 @@ const AdminAbout = () => {
     contact_email: '',
     contact_location: '',
     quick_links: [],
+    logo_url: '',
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (settings) {
@@ -58,6 +64,55 @@ const AdminAbout = () => {
     updateSettings.mutate(formData);
   };
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Logo must be less than 2MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('resources')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('resources')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, logo_url: publicUrl }));
+      toast.success('Logo uploaded! Click Save to apply changes.');
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast.error('Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setFormData(prev => ({ ...prev, logo_url: '' }));
+  };
+
   if (isLoading) {
     return (
       <AdminLayout title="About Section" subtitle="Manage website about content">
@@ -84,6 +139,72 @@ const AdminAbout = () => {
       }
     >
       <div className="grid gap-6 max-w-4xl">
+        {/* Logo Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5" />
+              Logo Management
+            </CardTitle>
+            <CardDescription>
+              Upload a custom logo for your website (displayed in header, footer, and login page)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <img
+                  src={formData.logo_url || gtuVerseLogo}
+                  alt="Current Logo"
+                  className="h-20 w-20 rounded-full object-cover border-2 border-border"
+                />
+                {formData.logo_url && (
+                  <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
+                    Custom
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-3">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="gap-2"
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    Upload New Logo
+                  </Button>
+                  {formData.logo_url && (
+                    <Button
+                      variant="ghost"
+                      onClick={handleRemoveLogo}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Recommended: Square image (1:1), max 2MB. PNG or JPG format.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Brand Information */}
         <Card>
           <CardHeader>
