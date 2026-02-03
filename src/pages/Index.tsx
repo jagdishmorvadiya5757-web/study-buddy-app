@@ -4,7 +4,9 @@ import BranchCard from '@/components/gtu/BranchCard';
 import TrendingResources from '@/components/gtu/TrendingResources';
 import Footer from '@/components/gtu/Footer';
 import BottomNavigation from '@/components/gtu/BottomNavigation';
+import LoginBannerAd from '@/components/ads/LoginBannerAd';
 import { useBranches } from '@/hooks/useBranches';
+import { useInitializeAds } from '@/hooks/useAds';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,9 @@ import {
 
 const Index = () => {
   const { data: branches, isLoading } = useBranches();
+  
+  // Initialize ads
+  useInitializeAds();
 
   const resourceCategories = [
     {
@@ -222,6 +227,9 @@ const Index = () => {
 
       <Footer />
       <BottomNavigation />
+      
+      {/* Login Banner Ad */}
+      <LoginBannerAd />
     </div>
   );
 };

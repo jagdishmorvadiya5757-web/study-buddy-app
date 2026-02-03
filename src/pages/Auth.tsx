@@ -104,6 +104,7 @@ const Auth = () => {
           }
         } else {
           toast.success('Account created successfully!');
+          sessionStorage.setItem('just_logged_in', 'true');
           navigate('/');
         }
       } else {
@@ -116,6 +117,7 @@ const Auth = () => {
           }
         } else {
           toast.success('Welcome back!');
+          sessionStorage.setItem('just_logged_in', 'true');
           navigate(from, { replace: true });
         }
       }

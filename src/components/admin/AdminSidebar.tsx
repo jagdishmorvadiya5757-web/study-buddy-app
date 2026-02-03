@@ -13,6 +13,7 @@ import {
   Info,
   MessageSquare,
   HelpCircle,
+  Megaphone,
 } from 'lucide-react';
 
 const AdminSidebar = () => {
@@ -31,6 +32,7 @@ const AdminSidebar = () => {
         { href: '/admin/faqs', icon: HelpCircle, label: 'FAQs' },
         { href: '/admin/terms', icon: FileText, label: 'Terms & Privacy' },
         { href: '/admin/about', icon: Info, label: 'About Section' },
+        { href: '/admin/ads', icon: Megaphone, label: 'Ad Management' },
         { href: '/admin/audit', icon: ClipboardList, label: 'Audit Logs' },
       ]
     : [
