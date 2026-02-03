@@ -410,10 +410,19 @@ const Library = () => {
                   {filteredDownloads.map((download) => (
                     <div 
                       key={download.id} 
-                      className="bg-card rounded-xl shadow-soft overflow-hidden"
+                      className="bg-card rounded-xl shadow-soft overflow-hidden cursor-pointer hover:shadow-card transition-shadow"
+                      onClick={() => {
+                        const url = download.resource.external_url || download.resource.file_url;
+                        if (url) window.open(url, '_blank');
+                      }}
                     >
                       <div className="aspect-[3/4] bg-muted flex items-center justify-center relative">
                         <Download className="w-12 h-12 text-muted-foreground/30" />
+                        <div className="absolute bottom-2 left-2">
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full capitalize">
+                            {download.resource.resource_type.replace('_', ' ')}
+                          </span>
+                        </div>
                       </div>
                       <div className="p-3">
                         <h3 className="font-medium text-sm line-clamp-1">{download.resource.title}</h3>
