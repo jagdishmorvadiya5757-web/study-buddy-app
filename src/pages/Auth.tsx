@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
-
-const GTU_LOGO = 'https://www.gtu.ac.in/img/gtu_logo.png';
+import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5">
@@ -156,7 +155,11 @@ const Auth = () => {
       <div className="flex-1 flex flex-col justify-center px-8 py-12 lg:px-16">
         <div className="max-w-md mx-auto w-full">
           <div className="flex items-center gap-3 mb-8">
-            <img src={GTU_LOGO} alt="GTU Logo" className="h-12 w-12 object-contain" />
+            <img 
+              src={gtuVerseLogo} 
+              alt="GTU-VERSE Logo" 
+              className="h-12 w-12 object-contain rounded-full" 
+            />
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">
                 {isSignUp ? 'Create Account' : 'Welcome Back'}
@@ -274,9 +277,9 @@ const Auth = () => {
         <div className="max-w-md text-center text-primary-foreground">
           <div className="mb-8">
             <img
-              src={GTU_LOGO}
-              alt="GTU Logo"
-              className="h-24 w-24 mx-auto bg-white rounded-2xl p-3"
+              src={gtuVerseLogo}
+              alt="GTU-VERSE Logo"
+              className="h-24 w-24 mx-auto rounded-2xl object-cover"
             />
           </div>
           <h2 className="font-display text-3xl font-bold mb-4">
