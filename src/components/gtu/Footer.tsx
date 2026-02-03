@@ -14,9 +14,9 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src={gtuVerseLogo}
-                alt="GTU-VERSE Logo"
-                className="h-12 w-12 object-contain rounded-full"
+                src={settings?.logo_url || gtuVerseLogo}
+                alt={settings?.title || 'GTU-VERSE'}
+                className="h-12 w-12 object-cover rounded-full"
               />
               <div>
                 <h3 className="font-display text-lg font-bold">{settings?.title || 'GTU-VERSE'}</h3>

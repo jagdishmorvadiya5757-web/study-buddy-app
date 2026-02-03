@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
+import { useAboutSettings } from '@/hooks/useSiteSettings';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5">
@@ -41,6 +42,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, signIn, signUp, isLoading: authLoading } = useAuth();
+  const { data: settings } = useAboutSettings();
 
   const location = useLocation();
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
@@ -156,9 +158,9 @@ const Auth = () => {
         <div className="max-w-md mx-auto w-full">
           <div className="flex items-center gap-3 mb-8">
             <img 
-              src={gtuVerseLogo} 
-              alt="GTU-VERSE Logo" 
-              className="h-12 w-12 object-contain rounded-full" 
+              src={settings?.logo_url || gtuVerseLogo} 
+              alt={settings?.title || 'GTU-VERSE'} 
+              className="h-12 w-12 object-cover rounded-full" 
             />
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">
@@ -277,13 +279,13 @@ const Auth = () => {
         <div className="max-w-md text-center text-primary-foreground">
           <div className="mb-8">
             <img
-              src={gtuVerseLogo}
-              alt="GTU-VERSE Logo"
+              src={settings?.logo_url || gtuVerseLogo}
+              alt={settings?.title || 'GTU-VERSE'}
               className="h-24 w-24 mx-auto rounded-2xl object-cover"
             />
           </div>
           <h2 className="font-display text-3xl font-bold mb-4">
-            GTU Study Mates
+            {settings?.title || 'GTU Study Mates'}
           </h2>
           <p className="text-primary-foreground/80 text-lg">
             Your one-stop destination for GTU engineering study materials, 
