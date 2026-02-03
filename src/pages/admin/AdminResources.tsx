@@ -33,7 +33,7 @@ import { useResources, useCreateResource, useDeleteResource, ResourceType } from
 import { useBranches } from '@/hooks/useBranches';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, FileText, Search, ExternalLink, Upload, File } from 'lucide-react';
+import { Plus, Trash2, FileText, Search, ExternalLink, Upload, File, Image } from 'lucide-react';
 
 const resourceTypes: { value: ResourceType; label: string }[] = [
   { value: 'playlist', label: 'Video Playlist' },
@@ -66,7 +66,9 @@ const AdminResources = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCover, setSelectedCover] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -88,9 +90,51 @@ const AdminResources = () => {
       external_url: '',
     });
     setSelectedFile(null);
+    setSelectedCover(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (coverInputRef.current) {
+      coverInputRef.current.value = '';
+    }
+  };
+
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Only image files (JPG, PNG, WebP, GIF) are allowed');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Cover image size must be less than 5MB');
+        return;
+      }
+      setSelectedCover(file);
+    }
+  };
+
+  const uploadCover = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `covers/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('resources')
+      .upload(fileName, file);
+
+    if (uploadError) {
+      console.error('Cover upload error:', uploadError);
+      throw new Error('Failed to upload cover image');
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('resources')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,9 +192,14 @@ const AdminResources = () => {
     try {
       setIsUploading(true);
       let fileUrl: string | null = null;
+      let thumbnailUrl: string | null = null;
 
       if (selectedFile) {
         fileUrl = await uploadFile(selectedFile);
+      }
+
+      if (selectedCover) {
+        thumbnailUrl = await uploadCover(selectedCover);
       }
 
       await createResource.mutateAsync({
@@ -162,7 +211,7 @@ const AdminResources = () => {
         subject_name: formData.subject_name,
         external_url: formData.external_url || null,
         file_url: fileUrl,
-        thumbnail_url: null,
+        thumbnail_url: thumbnailUrl,
         is_active: true,
         uploaded_by: user?.id || null,
       });
@@ -355,6 +404,58 @@ const AdminResources = () => {
                     Remove the uploaded file to use an external URL instead
                   </p>
                 )}
+              </div>
+
+              {/* Cover Page Upload */}
+              <div className="space-y-2">
+                <Label>Cover Image (Optional)</Label>
+                <div className="border-2 border-dashed border-border rounded-lg p-4">
+                  <input
+                    ref={coverInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverSelect}
+                    className="hidden"
+                    id="cover-upload"
+                  />
+                  {selectedCover ? (
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-20 rounded overflow-hidden bg-muted">
+                        <img
+                          src={URL.createObjectURL(selectedCover)}
+                          alt="Cover preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{selectedCover.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(selectedCover.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedCover(null);
+                          if (coverInputRef.current) coverInputRef.current.value = '';
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="cover-upload"
+                      className="flex flex-col items-center justify-center cursor-pointer py-4"
+                    >
+                      <Image className="w-8 h-8 text-muted-foreground mb-2" />
+                      <p className="text-sm font-medium">Upload cover image</p>
+                      <p className="text-xs text-muted-foreground">JPG, PNG, WebP (max 5MB)</p>
+                    </label>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">

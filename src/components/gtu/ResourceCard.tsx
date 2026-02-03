@@ -35,18 +35,43 @@ const ResourceCard = ({ resource }: ResourceCardProps) => {
   const handleAction = () => {
     const url = resource.external_url || resource.file_url;
     if (url) {
-      // Track the download/view
-      trackDownload.mutate(resource.id);
       window.open(url, '_blank');
+    }
+  };
+
+  const handleDownload = () => {
+    const url = resource.file_url || resource.external_url;
+    if (url) {
+      // Track the download
+      trackDownload.mutate(resource.id);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = resource.title || 'download';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
   return (
     <div className="group p-5 rounded-xl bg-card shadow-soft hover:shadow-card transition-all duration-300 border border-border">
       <div className="flex items-start gap-4">
-        <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${config.color}`}>
-          <Icon className="w-6 h-6" />
-        </div>
+        {resource.thumbnail_url ? (
+          <div className="flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden bg-muted">
+            <img
+              src={resource.thumbnail_url}
+              alt={resource.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${config.color}`}>
+            <Icon className="w-6 h-6" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-xs font-medium px-2 py-0.5 rounded ${config.color}`}>
@@ -68,25 +93,28 @@ const ResourceCard = ({ resource }: ResourceCardProps) => {
         <span className="text-xs text-muted-foreground">
           {resource.download_count} downloads
         </span>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-2"
-          onClick={handleAction}
-          disabled={!resource.external_url && !resource.file_url}
-        >
-          {resource.external_url ? (
-            <>
-              <ExternalLink className="w-4 h-4" />
-              Open
-            </>
-          ) : (
-            <>
-              <Download className="w-4 h-4" />
-              Download
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1.5"
+            onClick={handleAction}
+            disabled={!resource.external_url && !resource.file_url}
+          >
+            <ExternalLink className="w-4 h-4" />
+            View
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={handleDownload}
+            disabled={!resource.file_url && !resource.external_url}
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </Button>
+        </div>
       </div>
     </div>
   );
