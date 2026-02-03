@@ -25,6 +25,7 @@ import AdminSubAdmins from "./pages/admin/AdminSubAdmins";
 import AdminSupport from "./pages/admin/AdminSupport";
 import AdminTerms from "./pages/admin/AdminTerms";
 import AdminFAQs from "./pages/admin/AdminFAQs";
+import AdminAds from "./pages/admin/AdminAds";
 import SmartScanner from "./pages/SmartScanner";
 import Library from "./pages/Library";
 import Profile from "./pages/Profile";
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/admin/support" element={<RequireAuth><RequireAdminOnly><AdminSupport /></RequireAdminOnly></RequireAuth>} />
                 <Route path="/admin/terms" element={<RequireAuth><RequireAdminOnly><AdminTerms /></RequireAdminOnly></RequireAuth>} />
                 <Route path="/admin/faqs" element={<RequireAuth><RequireAdminOnly><AdminFAQs /></RequireAdminOnly></RequireAuth>} />
+                <Route path="/admin/ads" element={<RequireAuth><RequireAdminOnly><AdminAds /></RequireAdminOnly></RequireAuth>} />
                 
                 {/* Admin Routes - Admins and Sub-admins */}
                 <Route path="/admin/resources" element={<RequireAuth><RequireAdminOrSubAdmin><AdminResources /></RequireAdminOrSubAdmin></RequireAuth>} />

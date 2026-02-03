@@ -42,6 +42,7 @@ const AdminMobileNav = () => {
         { href: '/admin/faqs', label: 'FAQs' },
         { href: '/admin/terms', label: 'Terms & Privacy' },
         { href: '/admin/about', label: 'About Section' },
+        { href: '/admin/ads', label: 'Ad Management' },
         { href: '/admin/audit', icon: ClipboardList, label: 'Audit Logs' },
       ]
     : [];
