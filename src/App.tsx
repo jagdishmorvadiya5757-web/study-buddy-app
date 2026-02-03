@@ -12,6 +12,7 @@ import RequireAdminOrSubAdmin from "@/components/auth/RequireAdminOrSubAdmin";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Resources from "./pages/Resources";
+import ResourceSection from "./pages/ResourceSection";
 import Branches from "./pages/Branches";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -56,6 +57,7 @@ const App = () => (
                 {/* Protected Routes - Require Authentication */}
                 <Route path="/" element={<RequireAuth><Index /></RequireAuth>} />
                 <Route path="/resources" element={<RequireAuth><Resources /></RequireAuth>} />
+                <Route path="/resources/:type" element={<RequireAuth><ResourceSection /></RequireAuth>} />
                 <Route path="/branches" element={<RequireAuth><Branches /></RequireAuth>} />
                 
                 {/* Admin Routes - Full admins only */}

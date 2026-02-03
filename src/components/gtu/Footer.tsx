@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { GraduationCap, Mail, MapPin } from 'lucide-react';
+import { Mail, MapPin } from 'lucide-react';
 import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
 import { useAboutSettings } from '@/hooks/useSiteSettings';
 
@@ -71,10 +71,6 @@ const Footer = () => {
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-secondary" />
                 {settings?.contact_email || 'support@gtuverse.com'}
-              </li>
-              <li className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-secondary" />
-                GTU Affiliated
               </li>
             </ul>
           </div>

@@ -8,10 +8,65 @@ import { useBranches } from '@/hooks/useBranches';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookOpen, FileText, Video } from 'lucide-react';
+import { 
+  ArrowRight, 
+  BookOpen, 
+  FileText, 
+  Video,
+  PlayCircle,
+  CheckCircle,
+  Star,
+  FlaskConical,
+  PenTool
+} from 'lucide-react';
 
 const Index = () => {
   const { data: branches, isLoading } = useBranches();
+
+  const resourceCategories = [
+    {
+      icon: PlayCircle,
+      title: 'Video Playlists',
+      description: 'Curated video lectures from top educators',
+      path: '/resources/playlists',
+      color: 'text-red-500 bg-red-50 dark:bg-red-950',
+    },
+    {
+      icon: FileText,
+      title: 'GTU Papers',
+      description: 'Previous year question papers',
+      path: '/resources/gtu-papers',
+      color: 'text-blue-500 bg-blue-50 dark:bg-blue-950',
+    },
+    {
+      icon: CheckCircle,
+      title: 'Paper Solutions',
+      description: 'Detailed solutions for GTU papers',
+      path: '/resources/solutions',
+      color: 'text-green-500 bg-green-50 dark:bg-green-950',
+    },
+    {
+      icon: BookOpen,
+      title: 'Books',
+      description: 'Reference books and study materials',
+      path: '/resources/books',
+      color: 'text-purple-500 bg-purple-50 dark:bg-purple-950',
+    },
+    {
+      icon: PenTool,
+      title: 'Handwritten Notes',
+      description: 'Quality notes from toppers',
+      path: '/resources/notes',
+      color: 'text-pink-500 bg-pink-50 dark:bg-pink-950',
+    },
+    {
+      icon: FlaskConical,
+      title: 'Lab Manuals',
+      description: 'Practical lab experiments',
+      path: '/resources/lab-manuals',
+      color: 'text-orange-500 bg-orange-50 dark:bg-orange-950',
+    },
+  ];
 
   const features = [
     {
@@ -38,6 +93,38 @@ const Index = () => {
       
       {/* Trending Resources */}
       <TrendingResources />
+
+      {/* Resource Categories */}
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-2">
+              Browse by Category
+            </h2>
+            <p className="text-muted-foreground">
+              Find exactly what you need for your studies
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {resourceCategories.map(({ icon: Icon, title, description, path, color }) => (
+              <Link
+                key={path}
+                to={path}
+                className="group p-4 rounded-2xl bg-card shadow-soft hover:shadow-card transition-all duration-300 border border-border text-center"
+              >
+                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3 ${color}`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <h3 className="font-semibold text-sm text-foreground mb-1 group-hover:text-primary transition-colors">
+                  {title}
+                </h3>
+                <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Browse by Branch */}
       <section className="py-16 bg-muted/50">
