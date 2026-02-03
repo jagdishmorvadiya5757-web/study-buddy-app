@@ -229,7 +229,7 @@ const SmartScanner = () => {
       const pdfBlob = await generatePDF();
       const pdfFile = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
 
-      // Upload to Supabase Storage
+      // Upload PDF to Supabase Storage
       const filePath = `${user.id}/${fileName}_${Date.now()}.pdf`;
       const { error: uploadError } = await supabase.storage
         .from('user-scans')
@@ -237,18 +237,63 @@ const SmartScanner = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get the URL
+      // Get the PDF URL
       const { data: urlData } = supabase.storage
         .from('user-scans')
         .getPublicUrl(filePath);
 
-      // Save to database
+      // Generate and upload thumbnail from first page
+      let thumbnailUrl: string | null = null;
+      if (pages.length > 0) {
+        try {
+          // Convert first page to thumbnail (resized JPEG)
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = pages[0].imageData;
+          });
+          
+          // Create thumbnail at 200x280 (roughly A4 ratio)
+          const thumbWidth = 200;
+          const thumbHeight = Math.round((img.height / img.width) * thumbWidth);
+          canvas.width = thumbWidth;
+          canvas.height = thumbHeight;
+          
+          ctx?.drawImage(img, 0, 0, thumbWidth, thumbHeight);
+          
+          const thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
+          const thumbnailFile = new File([thumbnailBlob], `${fileName}_thumb.jpg`, { type: 'image/jpeg' });
+          
+          const thumbPath = `${user.id}/${fileName}_thumb_${Date.now()}.jpg`;
+          const { error: thumbUploadError } = await supabase.storage
+            .from('user-scans')
+            .upload(thumbPath, thumbnailFile);
+          
+          if (!thumbUploadError) {
+            const { data: thumbUrlData } = supabase.storage
+              .from('user-scans')
+              .getPublicUrl(thumbPath);
+            thumbnailUrl = thumbUrlData.publicUrl;
+          }
+        } catch (thumbError) {
+          console.error('Thumbnail generation error:', thumbError);
+          // Continue without thumbnail
+        }
+      }
+
+      // Save to database with thumbnail
       const { error: dbError } = await supabase
         .from('user_scans')
         .insert({
           user_id: user.id,
           title: fileName,
           file_url: urlData.publicUrl,
+          thumbnail_url: thumbnailUrl,
           page_count: pages.length,
           file_size_bytes: pdfBlob.size,
         });
