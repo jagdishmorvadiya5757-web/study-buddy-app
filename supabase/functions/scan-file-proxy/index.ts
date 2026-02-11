@@ -98,6 +98,22 @@ serve(async (req) => {
     }
 
     const objectPath = match[1];
+
+    // Path traversal protection
+    if (objectPath.includes('..') || objectPath.includes('./')) {
+      return new Response("Invalid file path", { status: 400, headers: corsHeaders });
+    }
+
+    // Validate path structure: should be <uuid>/<filename>
+    const pathParts = objectPath.split('/');
+    if (pathParts.length < 2) {
+      return new Response("Invalid file path structure", { status: 400, headers: corsHeaders });
+    }
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(pathParts[0])) {
+      return new Response("Invalid user folder", { status: 400, headers: corsHeaders });
+    }
+
     const filename = decodeURIComponent(objectPath.split("/").pop() || "scan.pdf");
 
     const { data: blob, error: dlErr } = await adminClient.storage
