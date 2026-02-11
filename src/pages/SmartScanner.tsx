@@ -237,10 +237,11 @@ const SmartScanner = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get the PDF URL
-      const { data: urlData } = supabase.storage
+      // Get a signed URL (bucket is private)
+      const { data: urlData, error: signedUrlError } = await supabase.storage
         .from('user-scans')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year for storage in DB
+      if (signedUrlError || !urlData?.signedUrl) throw signedUrlError || new Error('Failed to get signed URL');
 
       // Generate and upload thumbnail from first page
       let thumbnailUrl: string | null = null;
@@ -275,10 +276,10 @@ const SmartScanner = () => {
             .upload(thumbPath, thumbnailFile);
           
           if (!thumbUploadError) {
-            const { data: thumbUrlData } = supabase.storage
+            const { data: thumbUrlData } = await supabase.storage
               .from('user-scans')
-              .getPublicUrl(thumbPath);
-            thumbnailUrl = thumbUrlData.publicUrl;
+              .createSignedUrl(thumbPath, 60 * 60 * 24 * 365);
+            thumbnailUrl = thumbUrlData?.signedUrl || null;
           }
         } catch (thumbError) {
           console.error('Thumbnail generation error:', thumbError);
@@ -292,7 +293,7 @@ const SmartScanner = () => {
         .insert({
           user_id: user.id,
           title: fileName,
-          file_url: urlData.publicUrl,
+          file_url: urlData.signedUrl,
           thumbnail_url: thumbnailUrl,
           page_count: pages.length,
           file_size_bytes: pdfBlob.size,

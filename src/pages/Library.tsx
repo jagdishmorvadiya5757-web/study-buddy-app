@@ -91,14 +91,26 @@ const Library = () => {
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
-  // Fetch PDF blob when preview dialog opens
+  // Fetch PDF blob when preview dialog opens (using signed URL for private bucket)
   useEffect(() => {
     if (previewDialog.open && previewDialog.scan?.file_url) {
       const fetchPdf = async () => {
         setIsLoadingPdf(true);
         setPdfBlobUrl(null);
         try {
-          const response = await fetch(previewDialog.scan!.file_url);
+          // Extract storage path from the file_url
+          const match = previewDialog.scan!.file_url.match(
+            /\/storage\/v1\/object\/(?:public|sign)\/user-scans\/(.+?)(?:\?|$)/
+          );
+          const storagePath = match?.[1];
+          if (!storagePath) throw new Error('Invalid file URL');
+
+          const { data, error } = await supabase.storage
+            .from('user-scans')
+            .createSignedUrl(decodeURIComponent(storagePath), 3600);
+          if (error || !data?.signedUrl) throw error || new Error('Failed to get signed URL');
+
+          const response = await fetch(data.signedUrl);
           if (!response.ok) throw new Error('Failed to fetch PDF');
           const blob = await response.blob();
           const url = URL.createObjectURL(blob);
@@ -246,6 +258,20 @@ const Library = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  // Helper to get a fresh signed URL from a stored file_url
+  const getSignedUrl = async (fileUrl: string): Promise<string | null> => {
+    const match = fileUrl.match(
+      /\/storage\/v1\/object\/(?:public|sign)\/user-scans\/(.+?)(?:\?|$)/
+    );
+    const storagePath = match?.[1];
+    if (!storagePath) return null;
+    const { data, error } = await supabase.storage
+      .from('user-scans')
+      .createSignedUrl(decodeURIComponent(storagePath), 3600);
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -353,7 +379,11 @@ const Library = () => {
                                 <Eye className="w-4 h-4 mr-2" />
                                 View
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => window.open(scan.file_url, '_blank')}>
+                              <DropdownMenuItem onClick={async () => {
+                                const url = await getSignedUrl(scan.file_url);
+                                if (url) window.open(url, '_blank');
+                                else toast.error('Failed to open file');
+                              }}>
                                 <ExternalLink className="w-4 h-4 mr-2" />
                                 Open in New Tab
                               </DropdownMenuItem>
@@ -364,7 +394,11 @@ const Library = () => {
                                 <Edit2 className="w-4 h-4 mr-2" />
                                 Rename
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleShare(scan.file_url, scan.title)}>
+                              <DropdownMenuItem onClick={async () => {
+                                const url = await getSignedUrl(scan.file_url);
+                                if (url) handleShare(url, scan.title);
+                                else toast.error('Failed to share file');
+                              }}>
                                 <Share2 className="w-4 h-4 mr-2" />
                                 Share
                               </DropdownMenuItem>

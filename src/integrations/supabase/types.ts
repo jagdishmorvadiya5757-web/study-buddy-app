@@ -228,6 +228,7 @@ export type Database = {
       site_settings: {
         Row: {
           id: string
+          is_public: boolean | null
           setting_key: string
           setting_value: Json
           updated_at: string
@@ -235,6 +236,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          is_public?: boolean | null
           setting_key: string
           setting_value?: Json
           updated_at?: string
@@ -242,6 +244,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          is_public?: boolean | null
           setting_key?: string
           setting_value?: Json
           updated_at?: string
