@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supportRequestSchema } from '@/lib/validation';
 
 export interface FAQ {
   question: string;
@@ -185,14 +186,15 @@ export const useCreateSupportRequest = () => {
 
   return useMutation({
     mutationFn: async (request: { subject: string; message: string }) => {
+      const validated = supportRequestSchema.parse(request);
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 
       const { error } = await supabase.from('support_requests').insert({
         user_id: user.user.id,
         user_email: user.user.email || '',
-        subject: request.subject,
-        message: request.message,
+        subject: validated.subject,
+        message: validated.message,
       });
 
       if (error) throw error;

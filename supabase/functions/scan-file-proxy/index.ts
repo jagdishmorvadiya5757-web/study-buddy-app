@@ -10,13 +10,11 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  // Allow the browser to read these headers.
   "Access-Control-Expose-Headers": "Content-Type, Content-Disposition",
 };
 
 serve(async (req) => {
   try {
-    // Handle CORS preflight requests
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
     }
@@ -39,12 +37,10 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
     if (!backendUrl || !anonKey || !serviceRoleKey) {
+      console.error("scan-file-proxy: missing env vars");
       return new Response("Server misconfigured", { status: 500, headers: corsHeaders });
     }
 
-    console.log("scan-file-proxy request", { scanId });
-
-    // Verify the caller and their role
     const userClient = createClient(backendUrl, anonKey, {
       global: {
         headers: {
@@ -55,7 +51,6 @@ serve(async (req) => {
 
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
-      console.log("scan-file-proxy unauthorized", { scanId, userErr });
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
@@ -66,15 +61,13 @@ serve(async (req) => {
     );
 
     if (roleErr) {
-      console.log("scan-file-proxy role check error", { scanId, roleErr });
+      console.error("scan-file-proxy: role check failed");
       return new Response("Failed to verify permissions", { status: 500, headers: corsHeaders });
     }
     if (!isAdmin) {
-      console.log("scan-file-proxy forbidden", { scanId, userId: userData.user.id });
       return new Response("Forbidden", { status: 403, headers: corsHeaders });
     }
 
-    // Load scan to get its file URL
     const { data: scan, error: scanErr } = await adminClient
       .from("user_scans")
       .select("file_url,title")
@@ -82,14 +75,13 @@ serve(async (req) => {
       .maybeSingle<ScanRow>();
 
     if (scanErr) {
-      console.log("scan-file-proxy scan load error", { scanId, scanErr });
+      console.error("scan-file-proxy: scan load failed");
       return new Response("Failed to load scan", { status: 500, headers: corsHeaders });
     }
     if (!scan?.file_url) {
       return new Response("Not found", { status: 404, headers: corsHeaders });
     }
 
-    // Expected format: .../storage/v1/object/public/user-scans/<path>
     const match = scan.file_url.match(
       /\/storage\/v1\/object\/public\/user-scans\/(.+)$/,
     );
@@ -99,12 +91,10 @@ serve(async (req) => {
 
     const objectPath = match[1];
 
-    // Path traversal protection
     if (objectPath.includes('..') || objectPath.includes('./')) {
       return new Response("Invalid file path", { status: 400, headers: corsHeaders });
     }
 
-    // Validate path structure: should be <uuid>/<filename>
     const pathParts = objectPath.split('/');
     if (pathParts.length < 2) {
       return new Response("Invalid file path structure", { status: 400, headers: corsHeaders });
@@ -121,7 +111,7 @@ serve(async (req) => {
       .download(objectPath);
 
     if (dlErr || !blob) {
-      console.log("scan-file-proxy download error", { scanId, dlErr });
+      console.error("scan-file-proxy: download failed");
       return new Response("Failed to download file", { status: 500, headers: corsHeaders });
     }
 
@@ -135,12 +125,11 @@ serve(async (req) => {
         "Content-Type": contentType,
         "Content-Disposition": `inline; filename="${filename}"`,
         "X-Content-Type-Options": "nosniff",
-        // Prevent caching sensitive admin content in shared caches.
         "Cache-Control": "private, max-age=3600",
       },
     });
   } catch (_e) {
-    console.log("scan-file-proxy unexpected error", _e);
+    console.error("scan-file-proxy: unexpected error");
     return new Response("Unexpected error", { status: 500, headers: corsHeaders });
   }
 });

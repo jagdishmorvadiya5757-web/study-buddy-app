@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { resourceSchema } from '@/lib/validation';
 
 export type ResourceType = 
   | 'playlist'
@@ -73,6 +74,7 @@ export const useCreateResource = () => {
 
   return useMutation({
     mutationFn: async (resource: Omit<Resource, 'id' | 'created_at' | 'download_count'>) => {
+      resourceSchema.parse(resource);
       const { data, error } = await supabase
         .from('resources')
         .insert(resource)
@@ -93,6 +95,7 @@ export const useUpdateResource = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Resource> & { id: string }) => {
+      resourceSchema.partial().parse(updates);
       const { data, error } = await supabase
         .from('resources')
         .update(updates)
