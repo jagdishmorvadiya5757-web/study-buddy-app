@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { branchSchema } from '@/lib/validation';
 
 export interface Branch {
   id: string;
@@ -38,13 +39,14 @@ export const useCreateBranch = () => {
 
   return useMutation({
     mutationFn: async (branch: CreateBranchData) => {
+      const validated = branchSchema.parse(branch);
       const { data, error } = await supabase
         .from('branches')
         .insert({
-          name: branch.name,
-          code: branch.code.toUpperCase(),
-          description: branch.description || null,
-          icon_url: branch.icon_url || null,
+          name: validated.name,
+          code: validated.code.toUpperCase(),
+          description: validated.description || null,
+          icon_url: validated.icon_url || null,
           is_active: true,
         })
         .select()
@@ -65,9 +67,10 @@ export const useUpdateBranch = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Branch> & { id: string }) => {
+      const validated = branchSchema.partial().parse(updates);
       const { data, error } = await supabase
         .from('branches')
-        .update(updates)
+        .update(validated)
         .eq('id', id)
         .select()
         .single();
