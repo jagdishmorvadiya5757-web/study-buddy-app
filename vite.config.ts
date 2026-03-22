@@ -3,9 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // The dot '.' before the slash is the most important part for Mobile & GitHub
-  base: './', 
+  // Set base to your repository name for GitHub Pages
+  base: '/study-buddy-app/',
   build: {
     outDir: 'dist',
   },
