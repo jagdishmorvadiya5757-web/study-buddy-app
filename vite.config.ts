@@ -1,5 +1,10 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { componentTagger } from "lovable-tagger";
+
 export default defineConfig(({ mode }) => ({
-  // The dot '.' before the slash is the most important part!
+  // The dot '.' before the slash is the most important part for Mobile & GitHub
   base: './', 
   build: {
     outDir: 'dist',
