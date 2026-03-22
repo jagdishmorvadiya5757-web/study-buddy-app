@@ -1,21 +1,16 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
-
 export default defineConfig(({ mode }) => ({
+  // The dot '.' before the slash is the most important part!
   base: './', 
+  build: {
+    outDir: 'dist',
+  },
   server: {
     host: "::",
     port: 8080,
-    hmr: {
-      overlay: false,
-    },
   },
   plugins: [
     react(),
-    mode === "development" &&
-    componentTagger(),
+    mode === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
