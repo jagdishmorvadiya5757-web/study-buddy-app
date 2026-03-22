@@ -34,7 +34,14 @@
     "input-otp": "^1.2.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-label": "^2.1.0",
-    "@radix-ui/react-dialog": "^1.1.0"
+    "@radix-ui/react-dialog": "^1.1.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/share": "^6.0.0",
+    "@capacitor/camera": "^6.0.0",
+    "@capacitor/filesystem": "^6.0.0",
+    "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-popover": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^3.11.0",
