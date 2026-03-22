@@ -1,8 +1,9 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "study-buddy-app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://jagdishmorvadiya5757-web.github.io/study-buddy-app",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
