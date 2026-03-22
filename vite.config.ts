@@ -4,16 +4,11 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
-  // Base must match your repository name exactly
+  // Ensure this matches your repository name exactly
   base: "/study-buddy-app/",
   build: {
     outDir: "dist",
     assetsDir: "assets",
-    emptyOutDir: true,
-  },
-  server: {
-    host: "::",
-    port: 8080,
   },
   plugins: [
     react(),
