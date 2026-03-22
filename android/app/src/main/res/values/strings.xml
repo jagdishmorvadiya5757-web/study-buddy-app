@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GTU Study Material</string>
+    <string name="title_activity_main">GTU Study Material</string>
+    <string name="package_name">com.vgec.studybuddy</string>
+    <string name="custom_url_scheme">com.vgec.studybuddy</string>
+</resources>
