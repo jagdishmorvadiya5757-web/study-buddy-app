@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://jagdishmorvadiya5757-web.github.io/study-buddy-app",
+  "homepage": "https://jagdishmorvadiya5757-web.github.io",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
