@@ -2,8 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-export default defineConfig({
-  base: "/study-buddy-app/",
+export default defineConfig(({ mode }) => ({
+  base: mode === "production" ? "/study-buddy-app/" : "/",
   plugins: [react()],
   resolve: {
     alias: {
@@ -14,4 +14,4 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true
   }
-});
+}));
