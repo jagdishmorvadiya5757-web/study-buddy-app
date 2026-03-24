@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { lovable } from '@/integrations/lovable';
-import { supabase } from '@/integrations/supabase/client'; // <-- Added this!
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -87,9 +87,13 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created successfully!');
-          sessionStorage.setItem('just_logged_in', 'true');
-          navigate('/');
+          toast.success('Please check your email to confirm your account before signing in.', {
+            duration: 8000,
+          });
+          setIsSignUp(false);
+          setEmail('');
+          setPassword('');
+          setFullName('');
         }
       } else {
         const { error } = await signIn(email, password);
@@ -115,12 +119,8 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      // <-- Changed this to use supabase directly!
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'https://jagdishmorvadiya5757-web.github.io/study-buddy-app/',
-        }
+      const { error } = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
       });
 
       if (error) {
