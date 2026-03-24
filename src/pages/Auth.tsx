@@ -87,9 +87,13 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
-          toast.success('Account created successfully!');
-          sessionStorage.setItem('just_logged_in', 'true');
-          navigate('/');
+          toast.success('Please check your email to confirm your account before signing in.', {
+            duration: 8000,
+          });
+          setIsSignUp(false);
+          setEmail('');
+          setPassword('');
+          setFullName('');
         }
       } else {
         const { error } = await signIn(email, password);
