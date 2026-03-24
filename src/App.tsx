@@ -33,6 +33,7 @@ import Settings from "./pages/Settings";
 import Help from "./pages/Help";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import StudyChatbot from "./components/chat/StudyChatbot";
 
 const queryClient = new QueryClient();
 
