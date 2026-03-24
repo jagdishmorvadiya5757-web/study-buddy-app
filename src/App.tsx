@@ -89,7 +89,6 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <StudyChatbot />
-              </Routes>
             </BrowserRouter>
           </TooltipProvider>
         </AnalyticsProvider>
