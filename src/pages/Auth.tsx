@@ -44,6 +44,10 @@ const Auth = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Google OAuth only works on Lovable-hosted domains (not GitHub Pages)
+  const isLovableHost = window.location.hostname.includes('lovable.app') || window.location.hostname.includes('lovableproject.com') || window.location.hostname === 'localhost';
+
+
   useEffect(() => {
     if (user && !authLoading) {
       navigate(from, { replace: true });
