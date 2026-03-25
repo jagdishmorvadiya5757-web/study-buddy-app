@@ -44,6 +44,8 @@ const AnalyticsProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -52,7 +54,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter basename="/study-buddy-app">
+            <BrowserRouter basename={basename}>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 
