@@ -2,21 +2,43 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAdSettings } from './useAdSettings';
 import { Capacitor } from '@capacitor/core';
 
-// Check if we're on native platform
 const isNative = Capacitor.isNativePlatform();
 
-// Dynamic import for AdMob (only on native)
-let AdMob: any = null;
-let BannerAdSize: any = null;
-let BannerAdPosition: any = null;
+type AdMobModule = {
+  AdMob: any;
+  BannerAdSize: any;
+  BannerAdPosition: any;
+};
 
-if (isNative) {
-  import('@capacitor-community/admob').then((module) => {
-    AdMob = module.AdMob;
-    BannerAdSize = module.BannerAdSize;
-    BannerAdPosition = module.BannerAdPosition;
-  });
-}
+let admobModulePromise: Promise<AdMobModule | null> | null = null;
+
+const loadAdMobModule = async (): Promise<AdMobModule | null> => {
+  if (!isNative || !Capacitor.isPluginAvailable('AdMob')) return null;
+
+  if (!admobModulePromise) {
+    admobModulePromise = import('@capacitor-community/admob')
+      .then((module) => ({
+        AdMob: module.AdMob,
+        BannerAdSize: module.BannerAdSize,
+        BannerAdPosition: module.BannerAdPosition,
+      }))
+      .catch((error) => {
+        console.error('Failed to load AdMob plugin:', error);
+        return null;
+      });
+  }
+
+  return admobModulePromise;
+};
+
+const hasConfiguredNativeAppId = (adSettings: {
+  admob_android_app_id?: string;
+  admob_ios_app_id?: string;
+}) => {
+  const platform = Capacitor.getPlatform();
+  const appId = platform === 'ios' ? adSettings.admob_ios_app_id : adSettings.admob_android_app_id;
+  return Boolean(appId?.trim());
+};
 
 export const useInitializeAds = () => {
   const { data: adSettings } = useAdSettings();
@@ -26,9 +48,17 @@ export const useInitializeAds = () => {
     const initAds = async () => {
       if (!adSettings?.ads_enabled || initialized) return;
 
-      if (isNative && AdMob) {
+      if (isNative) {
+        if (!hasConfiguredNativeAppId(adSettings)) {
+          console.warn('AdMob skipped: native app id is missing in ad settings.');
+          return;
+        }
+
+        const module = await loadAdMobModule();
+        if (!module) return;
+
         try {
-          await AdMob.initialize({
+          await module.AdMob.initialize({
             initializeForTesting: false,
           });
           setInitialized(true);
@@ -36,8 +66,7 @@ export const useInitializeAds = () => {
         } catch (error) {
           console.error('AdMob initialization failed:', error);
         }
-      } else if (!isNative && adSettings.adsense_publisher_id) {
-        // Load AdSense script for web
+      } else if (adSettings.adsense_publisher_id) {
         const existingScript = document.querySelector('script[src*="adsbygoogle"]');
         if (!existingScript) {
           const script = document.createElement('script');
@@ -63,20 +92,21 @@ export const useBannerAd = () => {
   const showBanner = useCallback(async () => {
     if (!adSettings?.ads_enabled || !adSettings?.show_login_banner) return;
 
-    if (isNative && AdMob) {
+    if (isNative) {
+      const module = await loadAdMobModule();
+      if (!module) return;
+
       try {
         const platform = Capacitor.getPlatform();
-        const adId = platform === 'ios' 
-          ? adSettings.admob_ios_banner_id 
-          : adSettings.admob_android_banner_id;
+        const adId = platform === 'ios' ? adSettings.admob_ios_banner_id : adSettings.admob_android_banner_id;
 
         if (!adId) return;
 
-        await AdMob.showBanner({
+        await module.AdMob.showBanner({
           adId,
-          adSize: BannerAdSize.ADAPTIVE_BANNER,
-          position: BannerAdPosition.BOTTOM_CENTER,
-          margin: 60, // Above bottom nav
+          adSize: module.BannerAdSize.ADAPTIVE_BANNER,
+          position: module.BannerAdPosition.BOTTOM_CENTER,
+          margin: 60,
         });
         setIsShowing(true);
       } catch (error) {
@@ -86,13 +116,16 @@ export const useBannerAd = () => {
   }, [adSettings]);
 
   const hideBanner = useCallback(async () => {
-    if (isNative && AdMob && isShowing) {
-      try {
-        await AdMob.removeBanner();
-        setIsShowing(false);
-      } catch (error) {
-        console.error('Failed to hide banner:', error);
-      }
+    if (!isNative || !isShowing) return;
+
+    const module = await loadAdMobModule();
+    if (!module) return;
+
+    try {
+      await module.AdMob.removeBanner();
+      setIsShowing(false);
+    } catch (error) {
+      console.error('Failed to hide banner:', error);
     }
   }, [isShowing]);
 
@@ -106,61 +139,69 @@ export const useRewardedAd = () => {
 
   const prepareRewardedAd = useCallback(async () => {
     if (!adSettings?.ads_enabled || !adSettings?.show_download_rewarded) {
-      setIsReady(true); // Skip ads if disabled
+      setIsReady(true);
       return true;
     }
 
-    if (isNative && AdMob) {
+    if (isNative) {
+      const module = await loadAdMobModule();
+      if (!module) {
+        setIsReady(true);
+        return true;
+      }
+
       try {
         setIsLoading(true);
         const platform = Capacitor.getPlatform();
-        const adId = platform === 'ios'
-          ? adSettings.admob_ios_rewarded_id
-          : adSettings.admob_android_rewarded_id;
+        const adId = platform === 'ios' ? adSettings.admob_ios_rewarded_id : adSettings.admob_android_rewarded_id;
 
         if (!adId) {
           setIsReady(true);
+          setIsLoading(false);
           return true;
         }
 
-        await AdMob.prepareRewardedInterstitialAd({ adId });
+        await module.AdMob.prepareRewardedInterstitialAd({ adId });
         setIsReady(true);
         setIsLoading(false);
         return true;
       } catch (error) {
         console.error('Failed to prepare rewarded ad:', error);
-        setIsReady(true); // Allow download even if ad fails
+        setIsReady(true);
         setIsLoading(false);
         return true;
       }
     }
-    
+
     setIsReady(true);
     return true;
   }, [adSettings]);
 
   const showRewardedAd = useCallback(async (): Promise<boolean> => {
     if (!adSettings?.ads_enabled || !adSettings?.show_download_rewarded) {
-      return true; // Skip if disabled
+      return true;
     }
 
-    if (isNative && AdMob && isReady) {
+    if (isNative && isReady) {
+      const module = await loadAdMobModule();
+      if (!module) return true;
+
       try {
-        const result = await AdMob.showRewardedInterstitialAd();
+        await module.AdMob.showRewardedInterstitialAd();
         return true;
       } catch (error) {
         console.error('Failed to show rewarded ad:', error);
-        return true; // Allow action even if ad fails
+        return true;
       }
     }
 
     return true;
   }, [adSettings, isReady]);
 
-  return { 
-    prepareRewardedAd, 
-    showRewardedAd, 
-    isLoading, 
+  return {
+    prepareRewardedAd,
+    showRewardedAd,
+    isLoading,
     isReady,
     adDuration: adSettings?.rewarded_ad_duration || 5,
     adsEnabled: adSettings?.ads_enabled && adSettings?.show_download_rewarded,

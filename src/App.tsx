@@ -44,7 +44,7 @@ const AnalyticsProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+const basename = window.location.pathname.startsWith('/study-buddy-app') ? '/study-buddy-app' : '/';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
