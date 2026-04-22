@@ -11,6 +11,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 import gtuVerseLogo from '@/assets/gtu-verse-logo.jpeg';
 import { useAboutSettings } from '@/hooks/useSiteSettings';
+import { Capacitor } from '@capacitor/core';
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5">
@@ -44,8 +45,12 @@ const Auth = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Google OAuth only works on Lovable-hosted domains (not GitHub Pages)
-  const isLovableHost = window.location.hostname.includes('lovable.app') || window.location.hostname.includes('lovableproject.com') || window.location.hostname === 'localhost';
+  // Google OAuth works on Lovable-hosted domains and inside the native Android/iOS app (not on static GitHub Pages)
+  const isLovableHost =
+    window.location.hostname.includes('lovable.app') ||
+    window.location.hostname.includes('lovableproject.com') ||
+    window.location.hostname === 'localhost' ||
+    Capacitor.isNativePlatform();
 
 
   useEffect(() => {
