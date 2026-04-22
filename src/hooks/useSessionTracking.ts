@@ -8,6 +8,9 @@ export const useSessionTracking = () => {
   const sessionStartRef = useRef<Date | null>(null);
 
   useEffect(() => {
+    // RLS requires an authenticated user — skip tracking for anonymous visitors.
+    if (!user?.id) return;
+
     const startSession = async () => {
       sessionStartRef.current = new Date();
 
@@ -15,7 +18,7 @@ export const useSessionTracking = () => {
       const { data, error } = await supabase
         .from('user_sessions')
         .insert({
-          user_id: user?.id || null,
+          user_id: user.id,
           session_start: sessionStartRef.current.toISOString(),
           device_info: {
             userAgent: navigator.userAgent,
@@ -77,7 +80,11 @@ export const useSessionTracking = () => {
 };
 
 export const useInstallTracking = () => {
+  const { user } = useAuth();
   useEffect(() => {
+    // RLS requires an authenticated user — wait until the user is signed in.
+    if (!user?.id) return;
+
     const trackInstall = async () => {
       // Check if we've already tracked this install
       const installTracked = localStorage.getItem('gtu_install_tracked');
@@ -97,6 +104,7 @@ export const useInstallTracking = () => {
       await supabase
         .from('app_installs')
         .insert({
+          user_id: user.id,
           device_id: getDeviceId(),
           platform,
           app_version: '1.0.0',
@@ -106,7 +114,7 @@ export const useInstallTracking = () => {
     };
 
     trackInstall();
-  }, []);
+  }, [user?.id]);
 };
 
 // Generate or retrieve a unique device ID
